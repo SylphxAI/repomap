@@ -1,56 +1,53 @@
+<!-- Marketing: promise → CTA → comparison → why → docs -->
 <div align="center">
 
 # Spine
 
-## Why Spine wins for agents
+### Architecture evidence for agents — path, impact, boundaries.
 
-1. **Architecture answers with path/impact** — not “here are 40 files that match a string”.
-2. **Zero-config** — `npx -y @sylphx/spine`.
-3. **Pairs with Locus** — Locus finds the *chunk*; Spine maps the *system*.
-4. **Local graph** — no required cloud code-intel SaaS.
+**Local-first repository architecture graphs** with file-level provenance — not dashboard screenshots or keyword dumps.
 
-## Zero-config (no install)
+**Canonical** [`@sylphx/spine`](https://www.npmjs.com/package/@sylphx/spine) · **bin** `spine` · **live** `0.3.1`
+
+[![npm version](https://img.shields.io/npm/v/@sylphx/spine?style=flat-square)](https://www.npmjs.com/package/@sylphx/spine)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](https://opensource.org/licenses/MIT)
+[![stars](https://img.shields.io/github/stars/SylphxAI/architecture-reader-mcp?style=flat-square)](https://github.com/SylphxAI/architecture-reader-mcp/stargazers)
+
+</div>
+
+## Zero-config in one line
 
 ```bash
 npx -y @sylphx/spine
 ```
 
-Starts the MCP server on stdio. **Live `@sylphx/spine@0.3.1`** · portable linux natives (GLIBC≤2.35) · brand-sole `serverInfo.name=spine`.
+No Docker. No cloud code-intel SaaS required for the core path. Stdio MCP for agents.
 
+| Client | Setup |
+| --- | --- |
+| **Any agent / CLI** | `npx -y @sylphx/spine` |
+| **Claude Code** | `claude mcp add spine -- npx -y @sylphx/spine` |
+| **Desktop / Cursor / VS Code / Codex** | `"command": "npx", "args": ["-y", "@sylphx/spine"]` |
 
+## Why Spine feels unfairly good
 
-Canonical package: **`@sylphx/spine`** · bin **`spine`**
+Your agent mapped the repo. **Did it trace the right boundary?**
 
-### Your agent mapped the repo. **Did it trace the right boundary?**
+| Keyword grep map | **Spine** |
+| --- | --- |
+| “40 files match the string” | **Path / impact / boundaries with provenance** |
+| Dashboard screenshots | **Machine-readable architecture evidence** |
+| Cloud code-intel by default | **Local-first graph** |
+| Setup: SaaS + keys | **`npx -y` — done** |
+| Confused with code search | Pairs with **Locus** (chunks) vs **Spine** (system) |
 
-**Spine** is a local-first architecture evidence product for agents —
-a **local-first architecture engine** for agents and apps (SDK · CLI · MCP).
+### Five reasons teams pick Spine
 
-Agent-native **repository architecture evidence graphs** — boundaries,
-dependencies, routes, schemas, and impact radius with file-level provenance — not
-dashboard screenshots, not required LLM multi-agent burns, not keyword grep.
-
-Transitional package/repo: `@sylphx/spine` / `architecture-reader-mcp`.
-
-[![npm version](https://img.shields.io/npm/v/@sylphx/spine?style=flat-square)](https://www.npmjs.com/package/@sylphx/spine)
-[![CI/CD](https://img.shields.io/github/actions/workflow/status/SylphxAI/architecture-reader-mcp/ci.yml?style=flat-square&label=CI/CD)](https://github.com/SylphxAI/architecture-reader-mcp/actions/workflows/ci.yml)
-[![Rust](https://img.shields.io/badge/Rust-core-orange?style=flat-square&logo=rust)](https://www.rust-lang.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-MCP%20adapter-blue?style=flat-square)](https://www.typescriptlang.org/)
-
-**Beta 0.1** · **Rust core + Bun MCP adapter** · **6 primary MCP tools (+ advanced trace/evidence/context_pack)** · **Evidence envelope** · **Rust/Go/Python/TS extractors**
-
-[⭐ Star this repo](https://github.com/SylphxAI/architecture-reader-mcp) if agents should answer architecture questions with proof, not graphviz guesses.
-· [Quick start](#quick-start) · [Tool contract](#tool-contract) · [Why not grep or a dashboard?](#why-not-grep-or-a-dashboard)
-
-Complements generic code search in [CodeRAG](https://github.com/SylphxAI/coderag) — it does
-not replace it. Reader portfolio media tools live in
-[Prism / smart-reader-mcp](https://github.com/SylphxAI/smart-reader-mcp).
-
-</div>
-
----
-
-
+1. **Architecture answers**, not file dumps.
+2. **Zero-config MCP** — `npx -y @sylphx/spine`.
+3. **Local graph** — no required cloud intel product.
+4. **Brand-sole** — `@sylphx/spine` / `spine` / `serverInfo.name=spine`.
+5. **Family ready** — Locus finds code; Spine maps structure.
 
 ## Product docs
 
@@ -62,87 +59,7 @@ not replace it. Reader portfolio media tools live in
 | [docs/TOOL_SURFACE.md](docs/TOOL_SURFACE.md) | Few clear tools policy |
 | [docs/PRODUCT_INDEPENDENCE.md](docs/PRODUCT_INDEPENDENCE.md) | This repo is SSOT |
 | [docs/IPPB.md](docs/IPPB.md) | Independent public product bar |
-| [docs/PUBLISH.md](docs/PUBLISH.md) | npm/git publish status |
-
-## Language extractors (deterministic)
-
-| Language | What is extracted | Extractor id |
-| --- | --- | --- |
-| TypeScript / JavaScript | modules, imports, symbols, calls, routes, zod schemas | `import-graph` / `call-graph` / `routes` / `schema` (+ opt-in Synth AST) |
-| Python | modules, imports, classes, functions, calls | `python@0.1.0` |
-| Rust | modules, `use`/`mod`, functions, local calls | `rust@0.1.0` |
-| Go | package, imports, functions, local calls | `go@0.1.0` |
-| Java | package, imports, classes, methods, local calls | `java@0.1.0` |
-| C# | namespace, usings, types, methods, local calls | `csharp@0.1.0` |
-| Kotlin | package, imports, classes, fun, local calls | `kotlin@0.1.0` |
-| Ruby | require, class/module, def | `ruby@0.1.0` |
-| PHP | namespace, use, class, function | `php@0.1.0` |
-| C / C++ | includes, struct/enum/class, functions, local calls | `c@0.1.0` |
-| Shell | source/., functions | `shell@0.1.0` |
-| GitHub Actions | workflow jobs | `workflow@0.1.0` |
-| Dockerfile | FROM/COPY graph | `docker@0.1.0` |
-| SQL | CREATE TABLE / REFERENCES | `sql@0.1.0` |
-| Protobuf | package, import, service/message/rpc | `proto@0.1.0` |
-| GraphQL | type/interface/enum + Query fields | `graphql@0.1.0` |
-| Makefile | targets | `make@0.1.0` |
-| CODEOWNERS | path → owner edges | `codeowners@0.1.0` |
-| OpenAPI | paths + HTTP methods as routes | `openapi@0.1.0` |
-| Terraform | resource/data blocks | `terraform@0.1.0` |
-| Kubernetes YAML | kind/name symbols | `k8s@0.1.0` |
-| Helm Chart.yaml | chart name/version + deps | `helm@0.1.0` |
-| Manifests / docs | `package.json` (+ scripts), `Cargo.toml`, ADRs/docs | `manifest` / `docs` |
-
-Every node/edge carries **file:line evidence** when known. Inference is labeled separately from deterministic structure.
-
-## Competitive position
-
-| Product | Spine difference |
-| --- | --- |
-| [Understand-Anything](https://github.com/Egonex-AI/Understand-Anything) | Human dashboard + skill + LLM semantics — Spine prioritizes **deterministic structure** and **agent/SDK query** |
-| [Graphify](https://github.com/Graphify-Labs/graphify) | Excellent local AST graph + CLI — Spine targets the same local honesty **plus first-class MCP/SDK** and architecture/impact workflows |
-| [Serena](https://github.com/oraios/serena) | Symbol **edit** IDE for agents — Spine does **not** own edits |
-
-Targets: [docs/portfolio/specs/spine-product-spec-v0.md](docs/portfolio/specs/spine-product-spec-v0.md) (product-local). Other instruments are separate repositories.
-
-## The problem
-
-Agents onboard, review, and refactor codebases every day. Most paths give you one
-of three bad outcomes:
-
-1. **grep / ripgrep** — fast, but literal. Finds strings, not boundaries, routes,
-   or ownership.
-2. **Generic code search** — great chunks, weak architecture map. You still guess
-   which module owns auth, billing, or deployment.
-3. **Visualization-first graph UIs** — rich for humans, heavy for agents. Screenshots
-   and pan/zoom do not fit MCP context windows.
-
-The model still hallucinates structure — confidently.
-
-**Architecture Reader MCP is built for the moment your agent needs to prove how the
-repo is shaped, what depends on what, and which files back each claim.**
-
-## Current delivery state
-
-**Beta 0.1** ships a runnable Rust evidence-graph engine with a thin Bun MCP
-adapter. Manifest/import/docs/route/schema extraction, symbol call tracing,
-TypeScript/Python/Rust/Go/Java/C# indexing, path/impact with git-diff, and incremental refresh are implemented with release-gate proof.
-First npm publish is workflow-owned via Changesets on `main` — see
-[roadmap](./docs/portfolio/roadmaps/architecture-reader-mcp.md).
-
-## Why not grep or a dashboard?
-
-| Typical path | Architecture Reader MCP (target) |
-| --- | --- |
-| Keyword hits over files | Architecture map: components, boundaries, routes, schemas |
-| "Trust the summary" | Evidence refs: path, line range, extractor, confidence |
-| Human graph explorer | Compact MCP answers with trace + impact tools |
-| Generic chunk search | Purpose-built `architecture_*` tools with shared envelope |
-| Ship and pray | Deterministic extraction first; inference explicitly labeled |
-
-Generic **code chunk** search stays in **[Locus](https://github.com/SylphxAI/coderag)**
-(transitional CodeRAG / `@sylphx/locus`). Spine owns architecture path/trace/impact — not hybrid chunk retrieval.
-Synth AST extraction is opt-in for TypeScript/JavaScript modules — see
-[integration spec](./docs/specs/synth-coderag-integration.md).
+| [docs/PUBLISH.md](docs/PUBLISH.md) | npm / git publish status |
 
 ## See it work
 
@@ -237,48 +154,6 @@ Trace dependency or impact before editing:
 
 Every answer shares one evidence envelope: path, optional line range, extraction
 source, freshness, confidence, and known gaps.
-
-## Quick start
-
-### Claude Code
-
-```bash
-claude mcp add spine -- npx @sylphx/spine
-```
-
-### Claude Desktop / any MCP host
-
-```json
-{
-  "mcpServers": {
-    "spine": {
-      "command": "npx",
-      "args": ["-y", "@sylphx/spine"]
-    }
-  }
-}
-```
-
-Set the host working directory to the repository you want indexed.
-
-### Clone and validate locally
-
-```bash
-git clone https://github.com/SylphxAI/architecture-reader-mcp.git
-cd architecture-reader-mcp
-bun install
-bun run build:rust
-bun run validate
-cargo test
-bun test test/readmeDiscovery.test.ts
-```
-
-### Implementation stack
-
-- **Rust core** — graph engine, index formats, query planning, traversal, impact.
-- **TypeScript/Bun MCP adapter** — protocol ergonomics and Sylphx MCP conventions.
-
-See [rust-first runtime note](./docs/portfolio/notes/rust-first-runtime-distribution.md).
 
 ## Repository layout
 
