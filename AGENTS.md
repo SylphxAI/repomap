@@ -5,7 +5,7 @@ Static engineering and delivery standards load from the active Skills runtime
 SSOT). Doctrine and Mission Control are retired historical lineage and must not
 be loaded as current instruction authority.
 
-Local truth: `PROJECT.md`, `` when present.
+Local truth: `PROJECT.md`.
 
 ## Boundary hazards
 
@@ -14,8 +14,6 @@ Local truth: `PROJECT.md`, `` when present.
 ## Local commands
 
 - `PROJECT.md` is the human-readable project boundary.
-- `` is the Sylphx governance adapter.
-- `` is the vendor-neutral machine manifest.
 - `docs/architecture.md` is the durable architecture overview.
 - `docs/specs/` owns product and protocol specifications.
 - `docs/adr/` owns durable architectural decisions.
