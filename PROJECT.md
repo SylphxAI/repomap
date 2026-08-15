@@ -7,8 +7,8 @@ boundaries live, how components depend on each other, and what files prove each
 answer.
 
 Project identity is split by boundary: vendor-neutral project facts live in
-[`project.manifest.json`](./project.manifest.json), while Sylphx-specific
-governance facts live in [`.doctrine/project.json`](./.doctrine/project.json).
+, while Sylphx-specific
+governance facts live in .
 
 ## Lifecycle And Layer
 
