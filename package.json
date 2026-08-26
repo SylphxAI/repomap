@@ -4,12 +4,15 @@
   "private": true,
   "type": "module",
   "description": "Spine monorepo (publishable package: packages/mcp-server \u2192 @sylphx/spine).",
-  "packageManager": "bun@1.3.14",
+  "packageManager": "bun@1.4.0",
+  "engines": {
+    "bun": ">=1.4.0"
+  },
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "validate:json": "python3 -m json.tool .doctrine/project.json >/dev/null && python3 -m json.tool project.manifest.json >/dev/null",
+    "validate:json": "bun -e \"for (const file of ['package.json', 'packages/mcp-server/package.json', 'server.json']) await Bun.file(file).json()\"",
     "validate": "bun run validate:json",
     "build:rust": "cargo build --release -p architecture-reader-core -p architecture-reader-cli -p architecture-reader-mcp-server && bun scripts/stage-rust-mcp.ts",
     "build": "bun run build:rust",

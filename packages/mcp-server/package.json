@@ -35,14 +35,17 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "prepublishOnly": "node -e \"require('fs').accessSync('src/tools.ts'); console.log('prepublish ok')\""
+    "prepublishOnly": "bun -e \"import { accessSync } from 'node:fs'; accessSync('src/tools.ts'); console.log('prepublish ok')\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.0",
     "zod": "^3.25.76"
   },
+  "engines": {
+    "bun": ">=1.4.0"
+  },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "1.4.0",
     "@types/node": "^26.1.2",
     "typescript": "^7.0.2"
   },
