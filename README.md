@@ -222,7 +222,7 @@ bun run benchmark:public-proof
 bun run benchmark:release-gate
 ```
 
-Fixture: `fixtures/sample-repo` (auth middleware + ADR + package manifest). Example requests: [`examples/`](examples/).
+Fixture: `fixtures/sample-repo` (auth middleware + decision-record sample + package manifest). Example requests: [`examples/`](examples/).
 
 ## Help this reach more builders
 
