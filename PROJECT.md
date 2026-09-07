@@ -51,7 +51,6 @@ remain owned by their source repositories.
 - README: [`README.md`](./README.md)
 - Architecture overview: [`docs/architecture.md`](./docs/architecture.md)
 - Specifications: [`docs/specs/`](./docs/specs/)
-- ADRs: [`docs/adr/`](./docs/adr/)
 - Portfolio plan: [`docs/portfolio/`](./docs/portfolio/)
 - SOTA family roadmap: [`docs/roadmap/sota-family-roadmap.md`](./docs/roadmap/sota-family-roadmap.md)
 - Security boundary: [`SECURITY.md`](./SECURITY.md)
