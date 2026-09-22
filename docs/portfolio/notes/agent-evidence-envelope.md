@@ -35,7 +35,7 @@ The exact schema may vary by project, but the semantics must stay consistent.
 ## Rationale
 
 Agents fail when they receive confident text without provenance. A shared
-evidence envelope turns each MCP into an inspection instrument. It allows agents
+evidence envelope turns each MCP into an inspection product. It allows agents
 to cite, re-check, compare, cache, and escalate results without guessing where a
 claim came from.
 

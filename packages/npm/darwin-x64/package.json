@@ -1,6 +1,6 @@
 {
   "name": "@sylphx/spine-darwin-x64",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Spine native MCP server binary for darwin-x64",
   "os": [
     "darwin"
@@ -14,5 +14,11 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "homepage": "https://sylphxai.github.io/spine/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SylphxAI/spine.git",
+    "directory": "packages/npm/darwin-x64"
   }
 }

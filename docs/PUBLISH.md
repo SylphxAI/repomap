@@ -2,22 +2,20 @@
 
 | Field | Value |
 | --- | --- |
-| Transitional npm | `@sylphx/architecture-reader-mcp` |
-| Brand npm | `@sylphx/spine` |
-| Version | `0.2.1` |
-| Registry | **live** (dual expand–contract where brand ≠ transitional) |
+| Canonical npm | `@sylphx/spine` |
+| Version | `0.4.0` |
+| MCP Registry | `io.github.SylphxAI/spine` |
+| Natives | `@sylphx/spine-<platform>` |
 | Auth | GitHub org `NPM_TOKEN` via publish workflows |
 
 ## Install
 
 ```bash
-# preferred brand
 npm i -g @sylphx/spine
-# transitional still valid during expand
-npm i -g @sylphx/architecture-reader-mcp
 ```
 
-Workflows: `publish-npm-package.yml`, `publish-brand-alias.yml`.
+Workflows: `publish-platform-natives.yml`, `publish-npm-package.yml`,
+`publish-mcp-registry.yml`.
 
 ## Zero-config CTA
 
@@ -25,4 +23,5 @@ Workflows: `publish-npm-package.yml`, `publish-brand-alias.yml`.
 npx -y @sylphx/spine
 ```
 
-Live **@sylphx/spine@0.3.1**. Bare MCP stdio for agents.
+The product is brand-sole: use `@sylphx/spine` and the `spine` binary. Historical
+package identifiers are not install calls to action.

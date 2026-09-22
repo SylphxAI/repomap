@@ -1,9 +1,10 @@
 {
   "name": "@sylphx/spine",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
-  "description": "Spine monorepo (publishable package: packages/mcp-server \u2192 @sylphx/spine).",
+  "description": "Spine — repository architecture with file-level proof. Local-first graph, path, trace, and impact evidence for agents.",
+  "homepage": "https://sylphxai.github.io/spine/",
   "packageManager": "bun@1.4.0",
   "engines": {
     "bun": ">=1.4.0"
@@ -23,17 +24,21 @@
     "sync:server-json": "bun scripts/sync-server-json.ts",
     "version-packages": "changeset version && bun run sync:server-json",
     "release": "bun test && changeset publish",
-    "brand:pack-plan": "bun scripts/brand-pack-plan.ts"
+    "brand:pack-plan": "bun scripts/brand-pack-plan.ts",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/SylphxAI/architecture-reader-mcp.git"
+    "url": "git+https://github.com/SylphxAI/spine.git"
   },
   "license": "MIT",
   "devDependencies": {
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.0",
-    "@sylphx/synth-js": "^0.2.0"
+    "@sylphx/synth-js": "^0.2.0",
+    "vitepress": "1.6.4"
   },
   "mcpName": "io.github.SylphxAI/spine",
   "bin": {

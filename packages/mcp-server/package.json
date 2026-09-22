@@ -1,9 +1,9 @@
 {
   "name": "@sylphx/spine",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "mcpName": "io.github.SylphxAI/spine",
   "type": "module",
-  "description": "Spine \u2014 local architecture engine for agents. Index, search, path, impact with file:line evidence. SDK \u00b7 CLI \u00b7 MCP.",
+  "description": "Spine — repository architecture with file-level proof. Local graph, paths, traces, and impact.",
   "publishConfig": {
     "access": "public"
   },
@@ -28,14 +28,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SylphxAI/architecture-reader-mcp.git",
+    "url": "https://github.com/SylphxAI/spine.git",
     "directory": "packages/mcp-server"
   },
-  "homepage": "https://github.com/SylphxAI/architecture-reader-mcp#readme",
+  "homepage": "https://sylphxai.github.io/spine/",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "prepublishOnly": "bun -e \"import { accessSync } from 'node:fs'; accessSync('src/tools.ts'); console.log('prepublish ok')\""
+    "prepublishOnly": "bun -e \"import { accessSync } from 'node:fs'; accessSync('src/tools.ts'); console.log('prepublish ok')\"",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.0",
@@ -47,13 +50,14 @@
   "devDependencies": {
     "@types/bun": "1.4.0",
     "@types/node": "^26.1.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitepress": "1.6.4"
   },
   "private": false,
   "optionalDependencies": {
-    "@sylphx/spine-darwin-arm64": "0.3.1",
-    "@sylphx/spine-darwin-x64": "0.3.1",
-    "@sylphx/spine-linux-x64-gnu": "0.3.1",
-    "@sylphx/spine-linux-arm64-gnu": "0.3.1"
+    "@sylphx/spine-darwin-arm64": "0.4.0",
+    "@sylphx/spine-darwin-x64": "0.4.0",
+    "@sylphx/spine-linux-x64-gnu": "0.4.0",
+    "@sylphx/spine-linux-arm64-gnu": "0.4.0"
   }
 }

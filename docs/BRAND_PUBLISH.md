@@ -5,7 +5,6 @@
 | Canonical npm | `@sylphx/spine` (packages/mcp-server) |
 | bin | `spine` |
 | MCP | `io.github.SylphxAI/spine` |
-| Deprecated transitional | `@sylphx/architecture-reader-mcp` |
 
 ```bash
 npm i -g @sylphx/spine
@@ -13,4 +12,5 @@ npm i -g @sylphx/spine
 npx @sylphx/spine
 ```
 
-Native optionalDependencies may still use historical `@sylphx/architecture-reader-mcp-<platform>` names until rename train; versions match product.
+Native optionalDependencies use `@sylphx/spine-<platform>` and match the product
+version.
