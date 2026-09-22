@@ -13,7 +13,7 @@ design. It is research input, not the product SSOT; durable decisions live in
 Observed Sylphx Reader MCP repositories cover document/media reading:
 
 - `pdf-reader-mcp` has mature PDF reading, search, evidence, provenance, and
-  Agent Document Twin concepts.
+  structured document result concepts.
 - `image-reader-mcp` reads images.
 - `video-reader-mcp` reads video.
 - `smart-reader-mcp` delegates to the format-specific readers.

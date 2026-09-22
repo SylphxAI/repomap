@@ -20,6 +20,7 @@ pub fn handle_tool(tool: &str, input: serde_json::Value) -> ToolEnvelope {
         "architecture_index" => architecture_index(input),
         "architecture_status" => architecture_status(input),
         "architecture_overview" => architecture_overview(input),
+        "architecture_explain" => architecture_explain(input),
         "architecture_search" => architecture_search(input),
         "architecture_path" => architecture_path(input),
         "architecture_trace" => architecture_trace(input),
@@ -81,7 +82,7 @@ fn require_graph(root: &Path) -> Result<ArchitectureGraph, ToolEnvelope> {
         ToolEnvelope::error(
             "INDEX_NOT_FOUND",
             "No architecture index exists for this repository.",
-            Some("Call architecture_index with mode auto."),
+            Some("Call architecture_index with mode full or the compatibility alias auto."),
         )
     })
 }
@@ -538,6 +539,29 @@ fn architecture_status(input: serde_json::Value) -> ToolEnvelope {
         gaps,
         metrics(started, &graph),
     )
+}
+
+fn architecture_explain(input: serde_json::Value) -> ToolEnvelope {
+    let mut envelope = architecture_overview(input);
+    if envelope.status == "ok" {
+        if let Some(answer) = envelope.answer.as_mut() {
+            if let Some(object) = answer.as_object_mut() {
+                object.insert(
+                    "summary".into(),
+                    json!({
+                        "headline": "Repository structure with file-level evidence",
+                        "nextQuestions": [
+                            "Use architecture_search for a focused behavior",
+                            "Use architecture_trace for a call or dependency path",
+                            "Use architecture_impact before editing a changed path"
+                        ]
+                    }),
+                );
+            }
+        }
+        envelope.payload = envelope.answer.clone();
+    }
+    envelope
 }
 
 fn architecture_overview(input: serde_json::Value) -> ToolEnvelope {

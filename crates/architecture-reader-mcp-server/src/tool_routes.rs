@@ -10,7 +10,7 @@ pub fn route_for_tool(tool: &str) -> Option<ToolRoute> {
     match tool {
         "architecture_index"
         | "architecture_status"
-        | "architecture_overview"
+        | "architecture_overview" | "architecture_explain"
         | "architecture_search"
         | "architecture_path"
         | "architecture_trace"
@@ -26,10 +26,11 @@ pub fn is_rust_core_tool(tool: &str) -> bool {
 }
 
 /// Agent default path — keep small and obvious.
-pub const PRIMARY_TOOLS: [&str; 6] = [
+pub const PRIMARY_TOOLS: [&str; 7] = [
     "architecture_index",
     "architecture_status",
     "architecture_overview",
+    "architecture_explain",
     "architecture_search",
     "architecture_path",
     "architecture_impact",

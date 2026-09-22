@@ -37,6 +37,10 @@ export class Spine {
     return this.call('architecture_status');
   }
 
+  explain(input: Record<string, unknown> = {}) {
+    return this.call('architecture_explain', input);
+  }
+
   overview(input: Record<string, unknown> = {}) {
     return this.call('architecture_overview', input);
   }

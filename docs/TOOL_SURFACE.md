@@ -2,7 +2,7 @@
 
 ## Primary
 
-`architecture_index`, `architecture_status`, `architecture_overview`, `architecture_search`, `architecture_path`, `architecture_impact`
+`architecture_index`, `architecture_status`, `architecture_overview`, `architecture_explain`, `architecture_search`, `architecture_path`, `architecture_impact`
 
 ## Advanced
 

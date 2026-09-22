@@ -2,18 +2,18 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.SylphxAI/spine",
   "title": "Spine",
-  "description": "Spine — local architecture engine for agents. Index, search, path, impact with file:line evidence.",
+  "description": "Spine — repository architecture with file-level proof: graph, paths, traces, and impact.",
   "repository": {
-    "url": "https://github.com/SylphxAI/architecture-reader-mcp",
+    "url": "https://github.com/SylphxAI/spine",
     "source": "github"
   },
-  "version": "0.3.0",
-  "websiteUrl": "https://github.com/SylphxAI/architecture-reader-mcp#readme",
+  "version": "0.4.0",
+  "websiteUrl": "https://sylphxai.github.io/spine/",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@sylphx/spine",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "transport": {
         "type": "stdio"
       }

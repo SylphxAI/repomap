@@ -5,7 +5,7 @@ This directory holds **Spine / architecture-reader-mcp** planning notes only.
 This repository is the **product SSOT** (marketplace, release, stars, contracts).
 
 Sibling agent tools (Citra/Iris/Cue/Prism/Lookout) are **separate repositories**.
-See [../PRODUCT_INDEPENDENCE.md](../PRODUCT_INDEPENDENCE.md). Company private map: `SylphxAI/portfolio` (thin only). There is **no** central Instruments monorepo.
+See [../PRODUCT_INDEPENDENCE.md](../PRODUCT_INDEPENDENCE.md). Company private map: `SylphxAI/portfolio` (thin only). There is **no** central products monorepo.
 
 ## Product-local docs here
 

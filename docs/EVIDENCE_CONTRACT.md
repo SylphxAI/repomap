@@ -1,6 +1,6 @@
 # Evidence contract — Spine
 
-Family envelope v1. Locators: `file:line`, path hops, node ids.
+Result contract v1. Locators: `file:line`, path hops, node ids.
 Gaps: unknown impact, incomplete index, unsupported language.
 No `evidence_first` tool. No LLM required for graph authority.
 
@@ -14,4 +14,4 @@ Every tool result includes:
 - `warnings` and `gaps` arrays (may be empty)
 - domain payload (often also as top-level twin/results/answer for compatibility)
 
-Schema: `SylphxAI/skills` `schemas/instrument-evidence-envelope.schema.json`.
+Schema: `SylphxAI/skills` `schemas/product-evidence-envelope.schema.json`.
