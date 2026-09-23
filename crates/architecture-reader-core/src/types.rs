@@ -146,7 +146,13 @@ pub struct ToolEnvelope {
 
 fn default_envelope_version() -> String { "1".into() }
 fn default_product() -> String { "spine".into() }
-fn default_product_version() -> String { env!("CARGO_PKG_VERSION").into() }
+fn default_product_version() -> String {
+    // The published product version, not this crate's 0.1.0. build.rs reads
+    // packages/mcp-server/package.json unless SPINE_PRODUCT_VERSION is set.
+    option_env!("SPINE_PRODUCT_VERSION")
+        .unwrap_or(env!("CARGO_PKG_VERSION"))
+        .to_string()
+}
 fn default_family_route() -> serde_json::Value {
     serde_json::json!({ "engine": "rust-core", "path": "architecture-graph" })
 }
