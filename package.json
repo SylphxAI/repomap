@@ -1,6 +1,6 @@
 {
   "name": "@sylphx/spine",
-  "version": "0.4.0",
+  "version": "0.4.5",
   "private": true,
   "type": "module",
   "description": "Spine \u2014 repository architecture with file-level proof. Local-first graph, path, trace, and impact evidence for agents.",

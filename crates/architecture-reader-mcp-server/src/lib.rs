@@ -29,7 +29,7 @@ pub const SERVER_NAME: &str = "spine";
 /// a build that has neither.
 pub const SERVER_VERSION: &str = match option_env!("SPINE_PRODUCT_VERSION") {
     Some(version) => version,
-    None => "0.4.4",
+    None => "0.4.5",
 };
 pub const SERVER_INSTRUCTIONS: &str =
     "Architecture Reader MCP server (Rust rmcp transport). Index, search, path, trace, impact, and evidence tools run through the Rust evidence-graph engine.";
