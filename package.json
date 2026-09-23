@@ -3,7 +3,7 @@
   "version": "0.4.0",
   "private": true,
   "type": "module",
-  "description": "Spine — repository architecture with file-level proof. Local-first graph, path, trace, and impact evidence for agents.",
+  "description": "Spine \u2014 repository architecture with file-level proof. Local-first graph, path, trace, and impact evidence for agents.",
   "homepage": "https://sylphxai.github.io/spine/",
   "packageManager": "bun@1.4.0",
   "engines": {
@@ -15,7 +15,7 @@
   "scripts": {
     "validate:json": "bun -e \"for (const file of ['package.json', 'packages/mcp-server/package.json', 'server.json']) await Bun.file(file).json()\"",
     "validate": "bun run validate:json",
-    "build:rust": "cargo build --release -p architecture-reader-core -p architecture-reader-cli -p architecture-reader-mcp-server && bun scripts/stage-rust-mcp.ts",
+    "build:rust": "SPINE_PRODUCT_VERSION=$(node -p \"require('./package.json').version\") cargo build --release -p architecture-reader-core -p architecture-reader-cli -p architecture-reader-mcp-server && bun scripts/stage-rust-mcp.ts",
     "build": "bun run build:rust",
     "test": "cargo test && bun test",
     "doctor": "bun run packages/mcp-server/src/doctor.ts",
