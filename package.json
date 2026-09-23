@@ -38,6 +38,7 @@
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.0",
     "@sylphx/synth-js": "^0.2.0",
+    "@vue/server-renderer": "3.5.25",
     "vitepress": "1.6.4"
   },
   "mcpName": "io.github.SylphxAI/spine",
