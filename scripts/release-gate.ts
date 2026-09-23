@@ -319,7 +319,7 @@ export async function buildReleaseGateReport(artifactDir: string): Promise<Relea
     'mcp:golden_parity',
     fileExists('crates/architecture-reader-mcp-server/tests/golden_parity.rs') &&
       goldenParityProbe.status === 0,
-    'Golden parity test proves rmcp cli_bridge envelopes match direct architecture-reader-cli on fixture repo',
+    'Golden parity test proves the in-process rmcp adapter envelopes match direct architecture-reader-cli on fixture repo',
     goldenParityProbe.status === 0
       ? { exitCode: 0 }
       : {

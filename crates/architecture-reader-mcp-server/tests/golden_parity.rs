@@ -1,4 +1,4 @@
-//! MCP tool parity: rmcp cli_bridge must match direct architecture-reader-cli envelopes.
+//! MCP tool parity: the in-process rmcp adapter must match direct architecture-reader-cli envelopes, proving the subprocess bridge removal is faithful.
 
 use std::io::Write;
 use std::path::PathBuf;
