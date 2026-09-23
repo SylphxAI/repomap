@@ -24,11 +24,12 @@ impl FreeformToolArgs {
 
 pub const SERVER_NAME: &str = "spine";
 /// The product version, injected at build time from package.json (see the
-/// `build:rust` script). Falls back to the release this source last shipped so a
-/// plain `cargo build` still compiles.
+/// crate `build.rs`, which reads `packages/mcp-server/package.json`).
+/// `SPINE_PRODUCT_VERSION` still overrides that file. The fallback is only for
+/// a build that has neither.
 pub const SERVER_VERSION: &str = match option_env!("SPINE_PRODUCT_VERSION") {
     Some(version) => version,
-    None => "0.4.3",
+    None => "0.4.4",
 };
 pub const SERVER_INSTRUCTIONS: &str =
     "Architecture Reader MCP server (Rust rmcp transport). Index, search, path, trace, impact, and evidence tools run through the Rust evidence-graph engine.";

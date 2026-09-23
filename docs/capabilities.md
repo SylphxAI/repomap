@@ -28,4 +28,4 @@ Every answer carries repository root, indexed/current commit, freshness, extract
 
 ## Not owned
 
-Code-chunk retrieval, filesystem mutation, cloud code-intel, and generative summaries as architecture truth.
+Code-chunk retrieval, filesystem mutation, cloud code-intel, and generative summaries as architecture truth. Tree-sitter is not the default graph. Import and call extraction is a regex fallback (`importGraphRoute=regex_fallback`) unless `ARCHITECTURE_READER_USE_SYNTH=1` turns on Synth AST.

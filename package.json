@@ -15,7 +15,7 @@
   "scripts": {
     "validate:json": "bun -e \"for (const file of ['package.json', 'packages/mcp-server/package.json', 'server.json']) await Bun.file(file).json()\"",
     "validate": "bun run validate:json",
-    "build:rust": "SPINE_PRODUCT_VERSION=$(node -p \"require('./package.json').version\") cargo build --release -p architecture-reader-core -p architecture-reader-cli -p architecture-reader-mcp-server && bun scripts/stage-rust-mcp.ts",
+    "build:rust": "cargo build --release -p architecture-reader-core -p architecture-reader-cli -p architecture-reader-mcp-server && bun scripts/stage-rust-mcp.ts",
     "build": "bun run build:rust",
     "test": "cargo test && bun test",
     "doctor": "bun run packages/mcp-server/src/doctor.ts",

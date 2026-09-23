@@ -2134,8 +2134,14 @@ fn extract_json_schema_label(content: &str) -> Option<String> {
 }
 
 fn line_number_at(content: &str, byte_offset: usize) -> u32 {
-    let prefix = &content[..byte_offset.min(content.len())];
-    prefix.lines().count().max(1) as u32
+    // Newlines strictly before the offset, plus one. `str::lines()` drops a
+    // trailing newline, so a match at column 0 was reported as the previous line.
+    let offset = byte_offset.min(content.len());
+    content.as_bytes()[..offset]
+        .iter()
+        .filter(|byte| **byte == b'\n')
+        .count() as u32
+        + 1
 }
 
 fn index_ts_symbols(builder: &mut GraphBuilder, rel: &str, content: &str) {
@@ -2791,14 +2797,12 @@ mod pure_residual_tests {
 
     #[test]
     fn line_number_at_is_one_indexed_by_newlines() {
-        // Implementation counts `lines()` on the exclusive prefix. A trailing
-        // newline in the prefix does not add an empty line (Rust `lines()`),
-        // so offset at the first char of line N often reports N-1 until the
-        // char is included — lock that contract for pure residual deepen.
+        // Line is one plus the newlines strictly before the offset, so a match
+        // on the first column of a line is that line, not the previous one.
         let content = "a\nb\nc";
         assert_eq!(line_number_at(content, 0), 1);
-        assert_eq!(line_number_at(content, 2), 1); // prefix "a\n" → 1 line
-        assert_eq!(line_number_at(content, 3), 2); // prefix "a\nb" → 2 lines
+        assert_eq!(line_number_at(content, 2), 2); // offset of 'b'
+        assert_eq!(line_number_at(content, 3), 2); // still on 'b'
         assert_eq!(line_number_at(content, content.len()), 3);
         assert_eq!(line_number_at("", 0), 1);
     }
@@ -3043,18 +3047,18 @@ import { real } from '../lib/real';
     fn bw7_ts_symbol_spans_empty_and_end_line_chain() {
         assert!(ts_symbol_spans("").is_empty());
         assert!(ts_symbol_spans("// no functions\nconst x = 1;\n").is_empty());
-        // Honest line_number_at contract: start offset of next `function` after `}\n`
-        // yields start_line = lines(prefix).count() (often the line of `}` not the next line).
         let content = "function a() {\n  return 1;\n}\nfunction b() {\n  return 2;\n}\nfunction c() {\n  return 3;\n}\n";
         let spans = ts_symbol_spans(content);
         assert_eq!(spans.len(), 3, "{spans:?}");
         assert_eq!(spans[0].0, "a");
         assert_eq!(spans[0].1, 1);
-        // end = next_start - 1 (honest residual)
-        assert_eq!(spans[0].2, spans[1].1.saturating_sub(1));
         assert_eq!(spans[1].0, "b");
-        assert_eq!(spans[1].2, spans[2].1.saturating_sub(1));
+        assert_eq!(spans[1].1, 4);
         assert_eq!(spans[2].0, "c");
+        assert_eq!(spans[2].1, 7);
+        // end = next start - 1, so the range covers the closing brace.
+        assert_eq!(spans[0].2, 3);
+        assert_eq!(spans[1].2, 6);
         // last symbol end == total lines
         let total = content.lines().count().max(1) as u32;
         assert_eq!(spans[2].2, total);
@@ -3184,8 +3188,8 @@ import Def from '../def';
     fn bw8_line_number_at_empty_and_mid_line() {
         assert_eq!(line_number_at("", 0), 1);
         assert_eq!(line_number_at("abc", 1), 1);
-        assert_eq!(line_number_at("a\n\nb", 2), 1);
-        assert_eq!(line_number_at("a\n\nb", 3), 2);
+        assert_eq!(line_number_at("a\n\nb", 2), 2); // the empty line
+        assert_eq!(line_number_at("a\n\nb", 3), 3); // 'b'
     }
 
     #[test]
