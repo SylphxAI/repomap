@@ -64,18 +64,22 @@ Input:
 ```json
 {
   "root": "/abs/path",
-  "mode": "auto",
+  "mode": "refresh",
   "include": ["src", "docs"],
   "exclude": ["node_modules", "dist"],
   "maxFileBytes": 1048576
 }
 ```
 
+Omitting `mode` is the same as `refresh`. The response reports which branch ran: `cache_hit`, `incremental`, or `full`.
+
 Modes:
 
-- `auto`: incremental when safe, full rebuild otherwise.
-- `full`: discard previous derived indexes and rebuild.
-- `status_only`: do not write, only report what would happen.
+- `refresh`: reuse the index, update what changed, or scan fully when required.
+- `auto`: the old name for `refresh`. Same behavior.
+- `full`: explicit complete rescan.
+- `status_only`: check freshness and do not index.
+- anything else: complete rescan.
 
 Output answer:
 
@@ -230,7 +234,7 @@ Errors use the same envelope with `status: "error"`:
   "status": "error",
   "code": "INDEX_NOT_FOUND",
   "message": "No architecture index exists for this repository.",
-  "nextAction": "Call architecture_index with mode auto."
+  "nextAction": "Call architecture_index with mode refresh. auto is the old name for the same behavior."
 }
 ```
 

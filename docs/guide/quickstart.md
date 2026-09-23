@@ -12,11 +12,43 @@ For Claude Code:
 claude mcp add spine -- npx -y @sylphx/spine
 ```
 
-Then ask one concrete question and inspect the returned locators, route, warnings,
-and gaps before relying on the answer.
+Any MCP client uses the same stdio server:
 
-## Predictable defaults
+```json
+{
+  "mcpServers": {
+    "spine": { "command": "npx", "args": ["-y", "@sylphx/spine"] }
+  }
+}
+```
 
-`mode: "full"` builds the complete local graph. Use `mode: "status_only"` to
-check freshness without indexing. `mode: "auto"` remains an incremental-refresh
-compatibility alias; it does not hide network or model work.
+## Refresh the graph
+
+Omit `mode`. Spine reuses the index, updates what changed, or scans fully when it has to. The response names that as `cache_hit`, `incremental`, or `full`.
+
+```json
+{
+  "root": "/absolute/path/to/repo"
+}
+```
+
+`refresh` is the name of that default. `auto` is the old name for the same behavior. A complete rescan is explicit:
+
+```json
+{
+  "root": "/absolute/path/to/repo",
+  "mode": "full"
+}
+```
+
+`status_only` checks freshness and does not index. There is no model call and no API key on this path.
+
+## Ask one question
+
+```json
+{
+  "query": "authMiddleware"
+}
+```
+
+Search matches a label or a path fragment, not a sentence. Read the locators, the extraction label, the freshness, and the gaps before treating the answer as true.

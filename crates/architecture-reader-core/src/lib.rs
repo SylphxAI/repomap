@@ -139,6 +139,98 @@ mod tests {
     }
 
     #[test]
+    fn omitted_and_refresh_modes_follow_the_same_branch_as_auto() {
+        let _guard = fixture_index_lock().lock().expect("fixture index lock");
+        let root = fixture_root();
+        let root_str = root.to_string_lossy().to_string();
+        let refresh_mode = |envelope: &ToolEnvelope| {
+            envelope
+                .answer
+                .as_ref()
+                .and_then(|answer| answer.get("refreshMode"))
+                .and_then(|value| value.as_str())
+                .map(str::to_string)
+        };
+
+        let full = engine::handle_tool(
+            "architecture_index",
+            serde_json::json!({ "root": root_str, "mode": "full" }),
+        );
+        assert_eq!(full.status, "ok");
+        assert_eq!(refresh_mode(&full).as_deref(), Some("full"));
+
+        let omitted = engine::handle_tool(
+            "architecture_index",
+            serde_json::json!({ "root": root_str }),
+        );
+        let refresh = engine::handle_tool(
+            "architecture_index",
+            serde_json::json!({ "root": root_str, "mode": "refresh" }),
+        );
+        let auto = engine::handle_tool(
+            "architecture_index",
+            serde_json::json!({ "root": root_str, "mode": "auto" }),
+        );
+        assert_eq!(omitted.status, "ok");
+        assert_eq!(refresh.status, "ok");
+        assert_eq!(auto.status, "ok");
+        assert_eq!(refresh_mode(&omitted).as_deref(), Some("cache_hit"));
+        assert_eq!(refresh_mode(&refresh).as_deref(), Some("cache_hit"));
+        assert_eq!(refresh_mode(&auto).as_deref(), Some("cache_hit"));
+        assert_ne!(refresh_mode(&refresh).as_deref(), Some("refresh"));
+        assert_ne!(refresh_mode(&auto).as_deref(), Some("auto"));
+
+        let forced = engine::handle_tool(
+            "architecture_index",
+            serde_json::json!({ "root": root_str, "mode": "rebuild" }),
+        );
+        assert_eq!(forced.status, "ok");
+        assert_eq!(refresh_mode(&forced).as_deref(), Some("full"));
+
+        let status_only = engine::handle_tool(
+            "architecture_index",
+            serde_json::json!({ "root": root_str, "mode": "status_only" }),
+        );
+        assert_eq!(status_only.status, "ok");
+        assert_eq!(
+            status_only
+                .answer
+                .as_ref()
+                .and_then(|answer| answer.get("mode"))
+                .and_then(|value| value.as_str()),
+            Some("status_only")
+        );
+        assert!(status_only
+            .answer
+            .as_ref()
+            .and_then(|answer| answer.get("refreshMode"))
+            .is_none());
+    }
+
+    #[test]
+    fn missing_index_hint_names_refresh_before_auto() {
+        let dir = std::env::temp_dir().join(format!(
+            "spine-no-index-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).expect("temp repo");
+        let envelope = engine::handle_tool(
+            "architecture_status",
+            serde_json::json!({ "root": dir.to_string_lossy() }),
+        );
+        assert_eq!(envelope.code.as_deref(), Some("INDEX_NOT_FOUND"));
+        let hint = envelope.next_action.clone().unwrap_or_default();
+        let refresh_at = hint.find("refresh").expect("hint names refresh");
+        let auto_at = hint.find("auto").expect("hint keeps auto");
+        assert!(refresh_at < auto_at, "hint was: {hint}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn indexes_python_imports_and_call_edges() {
         let root = fixture_root();
         let git = git::read_git_state(&root);

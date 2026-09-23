@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Canonical npm | `@sylphx/spine` |
-| Version | `0.4.0` |
+| Version | the version published for `@sylphx/spine` on npm |
 | MCP Registry | `io.github.SylphxAI/spine` |
 | Natives | `@sylphx/spine-<platform>` |
 | Auth | GitHub org `NPM_TOKEN` via publish workflows |

@@ -52,7 +52,7 @@ impl ArchitectureReaderMcp {
 
 #[tool_router]
 impl ArchitectureReaderMcp {
-    #[tool(description = "Index or refresh the architecture evidence graph for a repository.")]
+    #[tool(description = "Index or refresh the local architecture graph. The default mode is refresh: cache hit, incremental, or full as needed. auto is the old name for that same behavior. full forces a complete rescan. status_only checks freshness without indexing.")]
     fn architecture_index(
         &self,
         Parameters(args): Parameters<FreeformToolArgs>,
