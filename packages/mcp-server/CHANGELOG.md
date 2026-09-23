@@ -1,5 +1,11 @@
 # @sylphx/architecture-reader-mcp
 
+## 0.4.5
+
+### Patch Changes
+
+- 32e0472: Symbol evidence uses the line the match is on, including a match at column 0. Tool envelopes and the MCP server version follow `packages/mcp-server/package.json` instead of the private root package or a stale fallback.
+
 ## 0.4.4
 
 ### Patch Changes
