@@ -59,5 +59,25 @@
     "@sylphx/spine-darwin-x64": "0.4.0",
     "@sylphx/spine-linux-x64-gnu": "0.4.0",
     "@sylphx/spine-linux-arm64-gnu": "0.4.0"
-  }
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "code-analysis",
+    "repository-analysis",
+    "software-architecture",
+    "code-understanding",
+    "impact-analysis",
+    "call-graph",
+    "dependency-graph",
+    "ast",
+    "code-navigation",
+    "agent-context",
+    "local-first",
+    "rust",
+    "developer-tools",
+    "ai-agents",
+    "spine",
+    "sylphx"
+  ]
 }
