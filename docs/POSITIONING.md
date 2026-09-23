@@ -1,59 +1,11 @@
-# Spine — positioning
+# Positioning — Spine
 
-## One-liner
+**One-liner:** Repository architecture with file-level proof.
 
-**Spine**: Repository architecture evidence engine — local-first, fast, light, powerful.
+- **User:** an agent or developer who must understand a repository before editing it.
+- **Job:** map the repository, trace behavior, explain boundaries and estimate change impact with file:line evidence.
+- **Promise:** every answer carries repository root, indexed/current commit, freshness, extraction source, confidence and gaps.
+- **Identity:** package `@sylphx/spine`, bin `spine`, MCP `io.github.SylphxAI/spine`, site <https://sylphxai.github.io/spine/>.
+- **Companion tools:** Citra, Iris, Cue, Spine, Locus and Lookout are independent products composed through public MCP and SDK contracts.
 
-## Why agents use this
-
-Local deterministic architecture index with search/path/trace/impact and file:line evidence — no required LLM pipeline.
-
-## Surfaces
-
-| Surface | Role |
-| --- | --- |
-| MCP | Agent tools over stdio |
-| CLI | Human/scriptable brand bin |
-| SDK | Programmatic library for apps and internal dogfood |
-
-## Primary tools
-
-- `architecture_index`
-- `architecture_status`
-- `architecture_overview`
-- `architecture_search`
-- `architecture_path`
-- `architecture_trace`
-- `architecture_impact`
-- `architecture_evidence`
-
-## Evidence
-
-See [EVIDENCE_CONTRACT.md](./EVIDENCE_CONTRACT.md).
-
-## Independence
-
-See [PRODUCT_INDEPENDENCE.md](./PRODUCT_INDEPENDENCE.md).
-
-## Competitive
-
-See [COMPETITIVE.md](./COMPETITIVE.md).
-
-## Completion bar
-
-See [IPPB.md](./IPPB.md).
-
-## Not Locus
-
-| Product | Job |
-| --- | --- |
-| **Spine** | Architecture path / trace / impact |
-| **Locus** (`coderag`) | Hybrid **code chunk** retrieval (`codebase_search`) |
-
-## Zero-config CTA
-
-```bash
-npx -y @sylphx/spine
-```
-
-Live **@sylphx/spine@0.3.1**. Bare MCP stdio for agents.
+See [vision.md](./vision.md) and [capabilities.md](./capabilities.md) for the destination and the owned capabilities. [TOOL_SURFACE.md](./TOOL_SURFACE.md) is the tool policy and [EVIDENCE_CONTRACT.md](./EVIDENCE_CONTRACT.md) is the result contract.
