@@ -1,6 +1,6 @@
 {
   "name": "@sylphx/spine",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "mcpName": "io.github.SylphxAI/spine",
   "type": "module",
   "description": "Spine — repository architecture with file-level proof. Local graph, paths, traces, and impact.",
@@ -55,10 +55,10 @@
   },
   "private": false,
   "optionalDependencies": {
-    "@sylphx/spine-darwin-arm64": "0.4.2",
-    "@sylphx/spine-darwin-x64": "0.4.2",
-    "@sylphx/spine-linux-x64-gnu": "0.4.2",
-    "@sylphx/spine-linux-arm64-gnu": "0.4.2"
+    "@sylphx/spine-darwin-arm64": "0.4.3",
+    "@sylphx/spine-darwin-x64": "0.4.3",
+    "@sylphx/spine-linux-x64-gnu": "0.4.3",
+    "@sylphx/spine-linux-arm64-gnu": "0.4.3"
   },
   "keywords": [
     "mcp",
