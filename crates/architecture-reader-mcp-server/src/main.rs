@@ -1,4 +1,4 @@
-use architecture_reader_mcp_server::{cli_bridge, ArchitectureReaderMcp, SERVER_VERSION};
+use architecture_reader_mcp_server::{ArchitectureReaderMcp, SERVER_VERSION};
 use rmcp::ServiceExt;
 
 #[tokio::main]
@@ -8,11 +8,7 @@ async fn main() -> anyhow::Result<()> {
             "Spine Rust MCP server {SERVER_VERSION} ({})",
             architecture_reader_core::ENGINE_NAME
         );
-        if let Some(cli) = cli_bridge::resolve_cli_binary() {
-            eprintln!("engine cli: {}", cli.display());
-        } else {
-            eprintln!("engine cli: unavailable (run `bun run build:rust`)");
-        }
+        eprintln!("engine: in-process (architecture-reader-core)");
         return Ok(());
     }
 

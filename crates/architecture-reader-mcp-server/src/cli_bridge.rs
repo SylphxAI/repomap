@@ -1,116 +1,29 @@
-use std::io::Write;
-use std::path::PathBuf;
-use std::process::{Command, Stdio};
-
 use rmcp::model::CallToolResult;
 use serde_json::Value;
 
-pub fn resolve_cli_binary() -> Option<PathBuf> {
-    if let Ok(path) = std::env::var("ARCHITECTURE_READER_CLI") {
-        let candidate = PathBuf::from(path);
-        if candidate.is_file() {
-            return Some(candidate);
-        }
-    }
-
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(parent) = exe.parent() {
-            if let Some(package_root) = parent.parent() {
-                for candidate in [
-                    package_root.join("target/release/architecture-reader-cli"),
-                    package_root.join("target/debug/architecture-reader-cli"),
-                    package_root.join("bin/native/architecture-reader-cli"),
-                ] {
-                    if candidate.is_file() {
-                        return Some(candidate);
-                    }
-                }
-            }
-        }
-    }
-
-    for candidate in [
-        PathBuf::from("target/release/architecture-reader-cli"),
-        PathBuf::from("target/debug/architecture-reader-cli"),
-    ] {
-        if candidate.is_file() {
-            return Some(candidate);
-        }
-    }
-
-    None
-}
-
+/// Invoke an architecture tool through the in-process Rust engine.
+///
+/// The engine lives in `architecture-reader-core`, which this server already
+/// links. Delegating over a subprocess only added a failure mode — a missing
+/// `architecture-reader-cli` binary, which the published native packages never
+/// shipped, so every tool failed for an npm user — plus a process spawn per
+/// call. Calling `handle_tool` directly keeps the package self-contained and
+/// makes every tool call faster.
 pub fn invoke_cli_tool(tool: &str, arguments: Value) -> Result<CallToolResult, rmcp::ErrorData> {
-    let cli = resolve_cli_binary().ok_or_else(|| {
-        rmcp::ErrorData::invalid_request(
-            "architecture-reader-cli is unavailable. Run `bun run build:rust`.",
-            None,
-        )
+    let envelope = architecture_reader_core::handle_tool(tool, arguments);
+    let mut structured = serde_json::to_value(&envelope).map_err(|error| {
+        rmcp::ErrorData::internal_error(format!("Failed to serialize envelope: {error}"), None)
     })?;
 
-    let request = serde_json::json!({ "tool": tool, "input": arguments });
-    let payload = serde_json::to_string(&request).map_err(|error| {
-        rmcp::ErrorData::internal_error(format!("Failed to serialize CLI request: {error}"), None)
-    })?;
-
-    let mut child = Command::new(cli)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|error| {
-            rmcp::ErrorData::internal_error(
-                format!("Failed to spawn architecture-reader-cli: {error}"),
-                None,
-            )
-        })?;
-
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(payload.as_bytes()).map_err(|error| {
-            rmcp::ErrorData::internal_error(format!("Failed to write CLI request: {error}"), None)
-        })?;
-    }
-
-    let output = child.wait_with_output().map_err(|error| {
-        rmcp::ErrorData::internal_error(format!("architecture-reader-cli failed: {error}"), None)
-    })?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(rmcp::ErrorData::internal_error(
-            format!(
-                "architecture-reader-cli exited with status {:?}: {stderr}",
-                output.status.code()
-            ),
-            None,
-        ));
-    }
-
-    let stdout = String::from_utf8(output.stdout).map_err(|error| {
-        rmcp::ErrorData::internal_error(
-            format!("architecture-reader-cli returned non-UTF8 output: {error}"),
-            None,
-        )
-    })?;
-
-    let envelope: Value = serde_json::from_str(&stdout).map_err(|error| {
-        rmcp::ErrorData::internal_error(
-            format!("architecture-reader-cli returned invalid JSON: {error}"),
-            None,
-        )
-    })?;
-
-    if envelope.get("status").and_then(Value::as_str) != Some("ok") {
-        let message = envelope
+    if structured.get("status").and_then(Value::as_str) != Some("ok") {
+        let message = structured
             .get("message")
             .and_then(Value::as_str)
-            .or_else(|| envelope.get("code").and_then(Value::as_str))
-            .unwrap_or("architecture-reader-cli returned an error envelope");
+            .or_else(|| structured.get("code").and_then(Value::as_str))
+            .unwrap_or("Architecture tool returned an error envelope");
         return Err(rmcp::ErrorData::internal_error(message.to_string(), None));
     }
 
-    let mut structured = envelope;
     if let Some(object) = structured.as_object_mut() {
         object.insert("tool".to_string(), Value::String(tool.to_string()));
         object.insert(
