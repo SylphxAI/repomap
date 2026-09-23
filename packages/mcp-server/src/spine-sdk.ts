@@ -24,7 +24,7 @@ export class Spine {
   }
 
   index(input: {
-    mode?: 'auto' | 'full' | 'status_only';
+    mode?: 'refresh' | 'auto' | 'full' | 'status_only';
     include?: string[];
     exclude?: string[];
     maxFileBytes?: number;

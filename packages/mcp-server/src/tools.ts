@@ -6,7 +6,12 @@ const rootSchema = z.object({
 });
 
 export const architectureIndexSchema = rootSchema.extend({
-  mode: z.enum(['auto', 'full', 'status_only']).optional(),
+  mode: z
+    .enum(['refresh', 'auto', 'full', 'status_only'])
+    .optional()
+    .describe(
+      'Defaults to refresh: cache hit, incremental, or full as needed. auto is the old name for that same behavior. full forces a complete rescan. status_only checks freshness without indexing.',
+    ),
   include: z.array(z.string()).optional(),
   exclude: z.array(z.string()).optional(),
   maxFileBytes: z.number().int().positive().optional(),

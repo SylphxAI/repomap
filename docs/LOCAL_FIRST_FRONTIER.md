@@ -5,7 +5,7 @@
 1. **Less dependency** — prefer OS/Rust binaries over heavy npm ML  
 2. **Zero config** — works without API keys  
 3. **Local first, cloud optional**  
-4. **Speed / size / performance**  
+4. **Small local runtime** — no hosted index on the default path  
 5. **Rust first** where engines exist  
 
 See product README + EVIDENCE_CONTRACT for surfaces.
@@ -24,4 +24,4 @@ See product README + EVIDENCE_CONTRACT for surfaces.
 npx -y @sylphx/spine
 ```
 
-Live **@sylphx/spine@0.3.1**. Bare MCP stdio for agents.
+Bare MCP stdio for agents. No API key on the default path.

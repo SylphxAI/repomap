@@ -82,7 +82,7 @@ fn require_graph(root: &Path) -> Result<ArchitectureGraph, ToolEnvelope> {
         ToolEnvelope::error(
             "INDEX_NOT_FOUND",
             "No architecture index exists for this repository.",
-            Some("Call architecture_index with mode full or the compatibility alias auto."),
+            Some("Call architecture_index with mode refresh or the compatibility alias auto."),
         )
     })
 }
@@ -312,7 +312,7 @@ fn architecture_index(input: serde_json::Value) -> ToolEnvelope {
         Ok(r) => r,
         Err(e) => return e,
     };
-    let mode = input.get("mode").and_then(|v| v.as_str()).unwrap_or("auto");
+    let mode = input.get("mode").and_then(|v| v.as_str()).unwrap_or("refresh");
     let mut options = ScanOptions::default();
     if let Some(include) = input.get("include").and_then(|v| v.as_array()) {
         options.include = include
@@ -357,7 +357,7 @@ fn architecture_index(input: serde_json::Value) -> ToolEnvelope {
     let inventory = inventory_files(&root, &options);
     let stored_hashes = load_file_hashes(&root);
     let refresh_mode;
-    let graph = if mode == "auto" {
+    let graph = if mode == "refresh" || mode == "auto" {
         if let (Some(existing), Some(stored)) = (load_graph(&root), stored_hashes.as_ref()) {
             if existing.schema_version == GRAPH_SCHEMA_VERSION
                 && stored.schema_version == GRAPH_SCHEMA_VERSION

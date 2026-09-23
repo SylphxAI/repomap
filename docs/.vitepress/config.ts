@@ -1,9 +1,22 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
+  base: '/spine/',
   title: 'Spine',
   description: 'Repository architecture with file-level proof',
+  appearance: 'dark',
+  cleanUrls: true,
+  srcExclude: [
+    'specs/**',
+    'adr/**',
+    'portfolio/**',
+    'research/**',
+    'roadmap/**',
+    'IPPB.md',
+    'architecture.md'
+  ],
   head: [
+    ['meta', { name: 'theme-color', content: '#f6c453' }],
     ['link', { rel: 'canonical', href: 'https://sylphxai.github.io/spine/' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'Spine — Repository architecture with file-level proof' }],
@@ -11,7 +24,6 @@ export default defineConfig({
     ['meta', { property: 'og:url', content: 'https://sylphxai.github.io/spine/' }],
     ['meta', { name: 'twitter:card', content: 'summary' }]
   ],
-  cleanUrls: true,
   themeConfig: {
     nav: [
       { text: 'Quickstart', link: '/guide/quickstart' },

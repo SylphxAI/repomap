@@ -15,7 +15,7 @@ features:
   - title: Local-first
     details: The default path keeps source material on your machine and requires no API key.
   - title: Predictable work
-    details: Complete graph builds and incremental refresh are explicit, with no hidden remote indexing.
+    details: The default refreshes the local graph. A complete rebuild is named explicitly, with no hidden remote indexing.
   - title: Citeable output
     details: Results carry source locators, routes, warnings, and gaps so agents can verify claims.
 ---

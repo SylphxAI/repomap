@@ -12,7 +12,7 @@
 
 | Capability | Tool | Evidence |
 | --- | --- | --- |
-| Graph build/refresh | `architecture_index` | repository root, indexed commit, coverage |
+| Graph build/refresh | `architecture_index` | omitted mode `refresh`: cache hit, incremental, or full; repository root, indexed commit, coverage |
 | Freshness/status | `architecture_status` | current commit, freshness, relation histogram, gaps |
 | Repository map | `architecture_overview` | ranked nodes, boundaries, cycles, fan-in/fan-out |
 | Architecture explanation | `architecture_explain` | map summary and useful next questions |
