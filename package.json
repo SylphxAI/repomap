@@ -38,10 +38,10 @@
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.0",
     "@sylphx/synth-js": "^0.2.0",
-    "@vue/compiler-dom": "3.5.25",
-    "@vue/server-renderer": "3.5.25",
+    "@vue/compiler-dom": "3.5.43",
+    "@vue/server-renderer": "3.5.43",
     "vitepress": "1.6.4",
-    "vue": "3.5.25"
+    "vue": "3.5.43"
   },
   "mcpName": "io.github.SylphxAI/spine",
   "bin": {
