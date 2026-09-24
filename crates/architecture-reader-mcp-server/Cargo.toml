@@ -15,7 +15,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1"
 architecture-reader-core = { path = "../architecture-reader-core" }
-rmcp = { version = "2.1.0", features = ["server", "transport-io"] }
+rmcp = { version = "3.0.0", features = ["server", "transport-io"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 schemars = { version = "1", features = ["preserve_order"] }
