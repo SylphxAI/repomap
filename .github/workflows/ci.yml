@@ -25,7 +25,7 @@ concurrency:
 jobs:
   validate:
     name: validate release gate
-    runs-on: sylphx-linux-standard
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
