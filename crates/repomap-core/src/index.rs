@@ -130,6 +130,8 @@ pub struct Index {
     pub community: Vec<u32>,
     pub communities: Vec<Community>,
     pub by_name: HashMap<String, Vec<u32>>,
+    /// Lowercased symbol names, parallel to `symbols` (search hot path).
+    pub names_lower: Vec<String>,
     pub bm25: Bm25,
     pub stats: Stats,
     pub git: GitInfo,
@@ -456,6 +458,7 @@ fn assemble(root: PathBuf, kept: &[(&Candidate, CacheEntry)]) -> Index {
     for (i, s) in symbols.iter().enumerate() {
         by_name.entry(s.name.clone()).or_default().push(i as u32);
     }
+    let names_lower: Vec<String> = symbols.iter().map(|s| s.name.to_ascii_lowercase()).collect();
     let tb = Instant::now();
     let bm25 = Bm25::build(kept.iter().enumerate().map(|(i, (_, e))| (i as u32, &files[i], &e.facts)));
     if std::env::var_os("REPOMAP_TRACE").is_some() {
@@ -478,6 +481,7 @@ fn assemble(root: PathBuf, kept: &[(&Candidate, CacheEntry)]) -> Index {
         community: Vec::new(),
         communities: Vec::new(),
         by_name,
+        names_lower,
         bm25,
         stats: Stats::default(),
         git: GitInfo::default(),

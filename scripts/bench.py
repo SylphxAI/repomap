@@ -4,7 +4,7 @@
 usage: bench.py <repomap-binary> <corpus-dir> <out.json>
 Each subdirectory of <corpus-dir> is one repository.
 """
-import json, os, resource, statistics, subprocess, sys, tempfile, time
+import json, os, statistics, subprocess, sys, tempfile, time
 
 BIN, CORPUS, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 PHRASES = ["parse configuration file", "http request handler", "error handling retry", "cache invalidation", "authentication token"]
@@ -14,11 +14,14 @@ def index(repo, cache_dir, no_cache):
     args = [BIN, "index", repo, "--json"] + (["--no-cache"] if no_cache else [])
     env = dict(os.environ, REPOMAP_CACHE_DIR=cache_dir)
     t = time.perf_counter()
-    p = subprocess.run(args, capture_output=True, text=True, env=env, check=True)
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, env=env, text=True)
+    out = p.stdout.read()
+    _, status, usage = os.wait4(p.pid, 0)
     wall = (time.perf_counter() - t) * 1000
-    # Max RSS over child processes so far (KiB on Linux); cold runs come first.
-    rss = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
-    return json.loads(p.stdout), wall, rss / 1024
+    if status != 0:
+        raise SystemExit(f"index failed for {repo}")
+    # ru_maxrss of this child only (KiB on Linux).
+    return json.loads(out), wall, usage.ru_maxrss / 1024
 
 
 class Mcp:

@@ -450,8 +450,8 @@ impl Index {
         let mut sym_scores: Vec<(u32, f32)> = Vec::new();
         if !ql.is_empty() {
             for (i, s) in self.symbols.iter().enumerate() {
-                let nl = s.name.to_ascii_lowercase();
-                let score = if nl == ql || s.qualified().to_ascii_lowercase() == ql {
+                let nl = self.names_lower[i].as_str();
+                let score = if nl == ql || (s.owner.is_some() && ql.contains('.') && s.qualified().to_ascii_lowercase() == ql) {
                     3.0
                 } else if single_word && nl.starts_with(&ql) && ql.len() >= 3 {
                     2.0
