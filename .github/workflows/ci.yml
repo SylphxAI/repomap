@@ -1,10 +1,12 @@
 name: ci
 
+# One build per pull request, shared by every job that needs the binary.
+# The merge queue runs only what the queue adds (macOS and Windows tests),
+# never the pull request checks a second time. `ci` is the one required check.
+
 on:
   pull_request:
   merge_group:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -15,82 +17,186 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+  changes:
+    if: github.event_name != 'merge_group'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      db: ${{ steps.f.outputs.db }}
+      docker: ${{ steps.f.outputs.docker }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: f
+        with:
+          filters: |
+            db:
+              - 'crates/repomap-core/src/db.rs'
+              - 'crates/repomap/src/dblive.rs'
+              - 'crates/repomap/src/tools.rs'
+              - 'Cargo.lock'
+              - '.github/workflows/ci.yml'
+            docker:
+              - 'Dockerfile*'
+              - '.dockerignore'
+              - 'crates/repomap/src/mcp.rs'
+              - '.github/workflows/ci.yml'
+
+  build:
+    if: github.event_name != 'merge_group'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace --locked
+      # One release build: the tests reuse its dependency artifacts and the
+      # binary is shared with every later job.
+      - run: cargo test --release --locked --workspace
+      - run: cargo build --release --locked -p repomap
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repomap-linux-x64
+          path: target/release/repomap
+          retention-days: 3
 
   checks:
-    name: ui, manifests, smoke
+    needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.4.0'
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/download-artifact@v4
+        with:
+          name: repomap-linux-x64
+          path: bin
+      - run: chmod +x bin/repomap && echo "REPOMAP_BIN=$PWD/bin/repomap" >> "$GITHUB_ENV"
       - run: bun install --frozen-lockfile
       - name: Manifests agree on one version
         run: bun scripts/check-version.ts
       - name: Committed UI bundle is up to date
         run: |
           bun run build:ui
-          git diff --exit-code crates/repomap/assets || (echo "::error::run 'bun run build:ui' and commit crates/repomap/assets" && exit 1)
-      - name: Build release binary
-        run: cargo build --release --locked -p repomap
-      - name: Smoke (CLI, export, MCP over stdio, npm launcher)
+          git diff --exit-code crates/repomap/assets
+      - name: Public copy matches brand.json and the tool registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/copy.ts --check --github
+      - name: Smoke (CLI, export, MCP over stdio, hook, npm launcher)
         run: |
           set -euo pipefail
-          B=target/release/repomap
+          B=$REPOMAP_BIN
+          F=crates/repomap-core/tests/fixture
           $B version
           $B index . --no-cache
           $B map | head -20
           $B search "call resolution" --limit 3
           $B context Index.build --code-lines 5
-          $B trace handleRefresh decode -C crates/repomap-core/tests/fixture
-          $B impact decode -C crates/repomap-core/tests/fixture
+          $B trace handleRefresh decode -C $F
+          $B impact decode -C $F
           $B export --out /tmp/map.html && test -s /tmp/map.html
+          mcp() { (cat; sleep 3) | "$@"; }
           printf '%s\n' \
             '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
             '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
             '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
             '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"query":"pagerank"}}}' \
-            | (cat; sleep 3) | $B mcp > /tmp/mcp.out
+            | mcp $B mcp > /tmp/mcp.out
           grep -q '"name":"impact"' /tmp/mcp.out
           grep -q 'pagerank' /tmp/mcp.out
           # Legacy Locus/Spine launch: flags first, old tool names.
           printf '%s\n' \
             '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
             '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"codebase_search","arguments":{"query":"verifyToken"}}}' \
-            | (cat; sleep 3) | $B --root=crates/repomap-core/tests/fixture > /tmp/legacy.out
+            | mcp $B --root=$F > /tmp/legacy.out
           grep -q 'verifyToken' /tmp/legacy.out
-          # Claude Code hook: Grep on a known symbol yields additionalContext.
-          echo "{\"tool_name\":\"Grep\",\"tool_input\":{\"pattern\":\"verifyToken\"},\"cwd\":\"$PWD/crates/repomap-core/tests/fixture\"}" | $B hook | tee /tmp/hook.out
-          grep -q 'additionalContext' /tmp/hook.out && grep -q 'SessionStore.refresh' /tmp/hook.out
-          REPOMAP_BIN=$PWD/$B node packages/repomap/bin/repomap.js version
-      - name: Public copy matches brand.json and the tool registry
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPOMAP_BIN: target/release/repomap
-        run: bun scripts/copy.ts --check --github
+          echo "{\"tool_name\":\"Grep\",\"tool_input\":{\"pattern\":\"verifyToken\"},\"cwd\":\"$PWD/$F\"}" | $B hook > /tmp/hook.out
+          grep -q 'SessionStore.refresh' /tmp/hook.out
+          node packages/repomap/bin/repomap.js version
       - name: Docs build
         run: bun run docs:build
 
-  docker:
-    name: docker image (source build)
+  action:
+    needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: repomap-linux-x64
+          path: bin
+      - run: chmod +x bin/repomap && echo "REPOMAP_BIN=$PWD/bin/repomap" >> "$GITHUB_ENV"
+      - id: s
+        uses: ./
+      - run: test "${{ steps.s.outputs.score }}" -ge 0
+
+  live-db:
+    needs: [changes, build]
+    if: needs.changes.outputs.db == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: pw, POSTGRES_DB: app }
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+      mysql:
+        image: mysql:8.4
+        env: { MYSQL_ROOT_PASSWORD: pw, MYSQL_DATABASE: app }
+        ports: ['3306:3306']
+        options: --health-cmd "mysqladmin ping -ppw" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: repomap-linux-x64
+          path: bin
+      - run: chmod +x bin/repomap
+      - name: Seed schemas
+        run: |
+          set -euo pipefail
+          cat > /tmp/schema.sql <<'SQL'
+          create table orgs (id integer primary key, name varchar(100) not null);
+          create table users (id integer primary key, org_id integer, email varchar(200) not null unique, foreign key (org_id) references orgs(id));
+          create table posts (id integer primary key, author_id integer not null, title text, constraint posts_author foreign key (author_id) references users(id));
+          create index posts_author_idx on posts(author_id);
+          SQL
+          PGPASSWORD=pw psql -h 127.0.0.1 -U postgres -d app -v ON_ERROR_STOP=1 -f /tmp/schema.sql
+          mysql -h 127.0.0.1 -uroot -ppw app < /tmp/schema.sql
+      - name: Introspect read-only and check nothing was written
+        env:
+          PG_URL: postgres://postgres:pw@127.0.0.1:5432/app
+          MY_URL: mysql://root:pw@127.0.0.1:3306/app
+        run: |
+          set -euo pipefail
+          B=bin/repomap
+          F=crates/repomap-core/tests/fixture
+          for v in PG_URL MY_URL; do
+            $B db --url-env $v --json -C $F > /tmp/$v.json
+            jq -e '.tables | map(select(.name=="posts"))[0].foreign_keys[0].ref_table == "users"' /tmp/$v.json
+            jq -e '.tables | map(select(.name=="users"))[0].foreign_keys[0].ref_table == "orgs"' /tmp/$v.json
+            ! grep -q 'pw@' /tmp/$v.json
+            $B db posts --url-env $v -C $F | grep -q author_id
+          done
+          PGPASSWORD=pw psql -h 127.0.0.1 -U postgres -d app -tAc "select count(*) from information_schema.tables where table_schema='public'" | grep -qx 3
+          if $B db --url postgres://postgres:wrongsecret@127.0.0.1:5432/app 2> /tmp/err.txt; then exit 1; fi
+          ! grep -q wrongsecret /tmp/err.txt
+
+  docker:
+    needs: [changes, build]
+    if: needs.changes.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
+      # The source Dockerfile is what Docker's MCP catalog builds, so it is
+      # built here; the release image reuses the release binaries instead.
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -106,71 +212,47 @@ jobs:
             '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
             '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
             '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"impact","arguments":{"target":"decode"}}}' \
-            | (cat; sleep 4) | docker run -i --rm -v "$PWD/crates/repomap-core/tests/fixture:/workspace:ro" repomap:ci | tee /tmp/out.jsonl
+            | (cat; sleep 4) | docker run -i --rm -v "$PWD/crates/repomap-core/tests/fixture:/workspace:ro" repomap:ci > /tmp/out.jsonl
           grep -q '"name":"impact"' /tmp/out.jsonl
           grep -q 'verifyToken' /tmp/out.jsonl
 
-  live-db:
-    name: live database introspection (read-only)
+  plain-language:
+    if: github.event_name != 'merge_group'
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env: { POSTGRES_PASSWORD: pw, POSTGRES_DB: app }
-        ports: ['5432:5432']
-        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
-      mysql:
-        image: mysql:8.4
-        env: { MYSQL_ROOT_PASSWORD: pw, MYSQL_DATABASE: app }
-        ports: ['3306:3306']
-        options: --health-cmd "mysqladmin ping -ppw" --health-interval 5s --health-timeout 5s --health-retries 20
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release --locked -p repomap
-      - name: Seed schemas
-        run: |
-          set -euo pipefail
-          cat > /tmp/schema.sql <<'SQL'
-          create table orgs (id integer primary key, name varchar(100) not null);
-          create table users (id integer primary key, org_id integer, email varchar(200) not null unique, foreign key (org_id) references orgs(id));
-          create table posts (id integer primary key, author_id integer not null, title text, constraint posts_author foreign key (author_id) references users(id));
-          create index posts_author_idx on posts(author_id);
-          SQL
-          PGPASSWORD=pw psql -h 127.0.0.1 -U postgres -d app -v ON_ERROR_STOP=1 -f /tmp/schema.sql
-          mysql -h 127.0.0.1 -uroot -ppw app < /tmp/schema.sql
-      - name: Introspect (Postgres, MySQL) and check nothing was written
-        env:
-          PG_URL: postgres://postgres:pw@127.0.0.1:5432/app
-          MY_URL: mysql://root:pw@127.0.0.1:3306/app
-        run: |
-          set -euo pipefail
-          B=target/release/repomap
-          for v in PG_URL MY_URL; do
-            $B db --url-env $v --json -C crates/repomap-core/tests/fixture > /tmp/$v.json
-            jq -e '.tables | map(select(.name=="posts"))[0].foreign_keys[0].ref_table == "users"' /tmp/$v.json
-            jq -e '.tables | map(select(.name=="users"))[0].foreign_keys[0].ref_table == "orgs"' /tmp/$v.json
-            ! grep -q 'pw@' /tmp/$v.json
-            $B db posts --url-env $v -C crates/repomap-core/tests/fixture | tee /tmp/$v.txt
-            grep -q 'author_id' /tmp/$v.txt
-          done
-          # The tables are unchanged (no DDL/DML from repomap).
-          PGPASSWORD=pw psql -h 127.0.0.1 -U postgres -d app -tAc "select count(*) from information_schema.tables where table_schema='public'" | grep -qx 3
-          # A bad password never leaks into errors.
-          if $B db --url postgres://postgres:wrongsecret@127.0.0.1:5432/app 2> /tmp/err.txt; then exit 1; fi
-          cat /tmp/err.txt; ! grep -q wrongsecret /tmp/err.txt
+        with:
+          fetch-depth: 0
+      - uses: SylphxAI/.github/.github/actions/plain-language@64598b859231c51f32d0be39630f36893d84f204
 
-  action:
-    name: GitHub Action (this build)
-    runs-on: ubuntu-latest
+  # Queue-only: the platforms a pull request does not need to wait for.
+  other-os:
+    if: github.event_name == 'merge_group'
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release --locked -p repomap && echo "REPOMAP_BIN=$PWD/target/release/repomap" >> "$GITHUB_ENV"
-      - id: s
-        uses: ./
-      - run: |
-          test "${{ steps.s.outputs.score }}" -ge 0
-          echo "${{ steps.s.outputs.badge-markdown }}"
+      - run: cargo test --locked --workspace
+
+  ci:
+    if: always()
+    needs: [changes, build, checks, action, live-db, docker, plain-language, other-os]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job that ran passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) exit 1 ;; esac
+          done

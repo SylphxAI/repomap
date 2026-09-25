@@ -36,6 +36,6 @@ features:
 ---
 
 <div class="hero-shot">
-  <img src="/img/demo.gif" alt="repomap demo: the map of excalidraw, search, a symbol's code and callers, then the impact of changing it">
+  <video src="/img/demo.mp4" poster="/img/hero-excalidraw.webp" autoplay loop muted playsinline aria-label="repomap demo: the map of excalidraw, search, a symbol's code and callers, then the impact of changing it"></video>
   <p>excalidraw: 687 files, 5,001 symbols and 9,639 resolved calls, indexed in under half a second. <a href="/repomap/demo">Try it live →</a></p>
 </div>

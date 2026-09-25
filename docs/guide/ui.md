@@ -32,5 +32,7 @@ The README GIF is the real UI, recorded with Playwright by [`scripts/record-demo
 ```bash
 repomap serve --no-open ~/code/excalidraw &
 python scripts/record-demo.py http://localhost:7878/ /tmp/rec restoreElements
-ffmpeg -ss 0.5 -i /tmp/rec/*.webm -vf "fps=10,scale=760:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" demo.gif
+# README GIF (about 2 MB) and the docs-site video (about 1 MB)
+ffmpeg -ss 3.5 -t 18 -i /tmp/rec/*.webm -vf "fps=8,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=48:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" demo.gif
+ffmpeg -ss 3.5 -t 18 -i /tmp/rec/*.webm -c:v libx264 -pix_fmt yuv420p -crf 30 -preset slow -movflags +faststart -vf scale=1280:-2 -an demo.mp4
 ```
