@@ -209,6 +209,10 @@ cargo run -p repomap -- serve .
 
 Issues and PRs are welcome, and new language support is especially useful: add a grammar and a query in `crates/repomap-core/src/lang.rs`.
 
+## Also from Sylphx
+
+[**anymd**](https://github.com/SylphxAI/anymd) turns any file into clean Markdown for your AI agent: PDF, Word, PowerPoint, Excel, EPUB, HTML, images, and audio/video. Like repomap, it runs locally, needs no API key, and is MIT licensed.
+
 ## Star history
 
 [![Star History Chart](https://api.star-history.com/svg?repos=SylphxAI/repomap&type=Date)](https://star-history.com/#SylphxAI/repomap&Date)
