@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2
+
+- **MCP server** now runs on [mcp-kit](https://github.com/SylphxAI/mcp-kit), which uses rmcp, the official Rust MCP SDK, instead of repomap's own JSON-RPC loop. Tools, tool names and answers are unchanged. The server now also handles protocol negotiation across every spec version, cancellation, progress and pagination.
+- **Shared parts:** `setup`, the npm launcher and the release workflow now come from mcp-kit, shared with the other Sylphx MCP servers.
+
 ## 1.2.1
 
 - **Security (`serve`, `db --serve`):**
