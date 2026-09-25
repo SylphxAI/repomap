@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.0
+
+- **Database map.** `repomap db` and the `db` MCP tool map tables, columns, keys and indexes, and link every table to the code that queries it (raw SQL, Prisma, Drizzle, SQLAlchemy, Diesel).
+  - Sources: SQL migrations (in order, rollbacks skipped), Prisma, Drizzle, SQLAlchemy and Flask-SQLAlchemy, and Diesel.
+  - Live Postgres, MySQL and SQLite are strictly read-only:
+    - Postgres uses a read-only transaction and verifies it before reading anything.
+    - MySQL uses `START TRANSACTION READ ONLY`.
+    - SQLite opens the file read-only with `query_only`.
+    - Only catalog metadata is read.
+    - The connection string comes from an argument or an env var and is never stored or printed.
+  - `--serve` / `--out` render tables and foreign keys in the graph UI, with a "Queried from" panel.
+- **Agent-readiness score.** `repomap score` rates a repository from 0 to 100 on eight checks and lists concrete fixes.
+  - The checks: agent instructions, build/test commands, tests, CI, module boundaries, file sizes, docs and types.
+  - It prints a README badge (`mark.sylphx.com/badge/agent--ready-…`).
+  - Flags: `--min` gates CI; `--update-readme` refreshes the badge.
+- **GitHub Action.** `uses: SylphxAI/repomap@v1` scores on CI, writes the job summary, and can keep the README badge current.
+
 ## 1.1.2
 
 - **Docker image** `ghcr.io/sylphxai/repomap` (linux/amd64, linux/arm64), published on every release. It runs the stdio MCP server; mount the repo at `/workspace`.

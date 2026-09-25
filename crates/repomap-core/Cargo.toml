@@ -9,6 +9,7 @@ homepage.workspace = true
 
 [dependencies]
 anyhow = "1"
+regex = "1"
 ignore = "0.4"
 rayon = "1"
 serde = { version = "1", features = ["derive"] }

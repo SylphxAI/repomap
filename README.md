@@ -11,6 +11,7 @@ One Rust binary. Local. No API key. MIT.
 [![CI](https://github.com/SylphxAI/repomap/actions/workflows/ci.yml/badge.svg)](https://github.com/SylphxAI/repomap/actions/workflows/ci.yml)
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.SylphxAI%2Frepomap-42d6a4)](https://registry.modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-ffb454)](LICENSE)
+<!-- repomap:agent-ready -->[![agent-ready 93/100](https://mark.sylphx.com/badge/agent--ready-93%2F100-brightgreen)](https://github.com/SylphxAI/repomap#agent-readiness-score)<!-- /repomap:agent-ready -->
 
 [**Live demo**](https://sylphxai.github.io/repomap/demo) · [Docs](https://sylphxai.github.io/repomap/) · [Quickstart](#quickstart) · [Tools](#what-your-agent-gets) · [Graph UI](#the-graph-ui) · [Benchmarks](https://sylphxai.github.io/repomap/benchmarks) · [Compare](#how-it-compares)
 
@@ -130,6 +131,61 @@ npx -y @sylphx/repomap export           # repomap.html: one self-contained file 
 - Click a module to focus it, <kbd>Shift</kbd>-click to hide it; toggle tests, edges and labels
 - `export` writes one HTML file with deep links (`#path/to/file`) and GitHub links pinned to your commit. It's a good fit for a README, a wiki or a design review.
 
+## Database map
+
+```bash
+npx -y @sylphx/repomap db                              # from migrations / Prisma / Drizzle / SQLAlchemy / Diesel
+npx -y @sylphx/repomap db --url-env DATABASE_URL       # live Postgres, MySQL or SQLite, read-only
+npx -y @sylphx/repomap db users                        # one table: columns, indexes, who references it, where it is queried
+npx -y @sylphx/repomap db --serve                      # the same graph UI, for tables and foreign keys
+```
+
+repomap reads your schema from the repository: SQL migrations (applied in order, with `down` migrations skipped), `schema.prisma`, Drizzle `pgTable`/`mysqlTable`/`sqliteTable`, SQLAlchemy and Flask-SQLAlchemy models, and Diesel `table!`. It can also introspect a live database. Each table is linked to the code that queries it: raw SQL (`FROM users`), Prisma (`prisma.user.findMany`), Diesel (`users::table`), and ORM models or tables used by files that import them.
+
+<img src="docs/public/img/db-crates-io.webp" alt="repomap db --serve on crates.io: 39 tables, 78 foreign keys, 527 code references" width="100%">
+
+Live connections are strictly read-only:
+- **Postgres** runs in a `READ ONLY` transaction that the server must confirm.
+- **MySQL** runs in a `START TRANSACTION READ ONLY` transaction.
+- **SQLite** is opened read-only with `query_only`.
+
+Only catalog metadata is read, never table rows. The connection string comes from an argument or an environment variable, and it is never stored or printed. Agents get the same data through the `db` MCP tool; pass `url_env` rather than the URL itself.
+
+## Agent-readiness score
+
+```bash
+npx -y @sylphx/repomap score
+```
+
+The score rates how well an AI agent can work in the repository, from 0 to 100. It covers eight checks:
+- agent instructions (AGENTS.md / CLAUDE.md and how useful they are)
+- discoverable build and test commands
+- test coverage
+- CI
+- module boundaries
+- file sizes
+- docs
+- types
+
+Each check that falls short comes with a concrete fix, and the score ends with a badge line for your README. For CI, use `--min 70`; `--update-readme README.md` refreshes the badge.
+
+Keep the badge fresh with the GitHub Action:
+
+```yaml
+# .github/workflows/agent-ready.yml
+on: { push: { branches: [main] } }
+permissions: { contents: write }
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: SylphxAI/repomap@v1
+        with:
+          update-readme: true   # replaces the agent-ready badge (or inserts one under the title)
+          min-score: 0          # set e.g. 70 to fail below a bar
+```
+
 ## Claude Code hook
 
 ```bash
@@ -178,6 +234,8 @@ Measured on a 4 vCPU GitHub-hosted runner ([method and full table](https://sylph
 | Keyword + symbol search | ✅ BM25 + names | ✅ | ✅ symbols | Semantic (vectors) | — |
 | Interactive graph UI | ✅ local + static export | ✅ | — | — | — |
 | Claude Code Grep/Glob hook | ✅ opt-in | ✅ | — | — | — |
+| Database schema map linked to code | ✅ live (read-only) + migrations/ORMs | — | — | — | — |
+| Agent-readiness score + badge | ✅ + GitHub Action | — | — | — | — |
 | Module detection | ✅ Louvain | ✅ | — | — | — |
 | Edits code | — (read-only) | — | ✅ | — | ✅ |
 | Engine | Rust | TypeScript | Python | TypeScript | Python |
@@ -195,6 +253,8 @@ repomap search <query> [--path src/] [--kind function] [--limit 10]
 repomap context <target> [--code-lines 60]
 repomap trace <from> [to] [--callers] [--depth 3]
 repomap impact [targets…] [--changed] [--base main]
+repomap db [table] [--url-env VAR | --url URL] [--serve | --out db.html] [--json]
+repomap score [dir] [--json] [--min N] [--update-readme README.md [--insert]]
 repomap index [dir] [--no-cache] [--json]
 repomap mcp [--root dir]
 ```

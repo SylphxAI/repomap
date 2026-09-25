@@ -158,6 +158,12 @@ jobs:
           (cd packages/npm/win32-x64-msvc && zip -q ../../../assets/repomap-win32-x64-msvc.zip repomap.exe)
           notes=$(awk -v v="## $V" '$0==v{f=1;next} /^## /{f=0} f' CHANGELOG.md)
           gh release create "v$V" assets/* --target "$GITHUB_SHA" --title "repomap $V" --notes "${notes:-repomap $V}"
+      - name: Move the major tag (uses SylphxAI/repomap@v1)
+        run: |
+          set -euo pipefail
+          MAJOR="v${V%%.*}"
+          git tag -f "$MAJOR" "$GITHUB_SHA"
+          git push -f origin "refs/tags/$MAJOR"
       - name: Publish to the MCP Registry
         run: |
           set -euo pipefail

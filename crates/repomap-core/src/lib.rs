@@ -6,12 +6,14 @@
 //! with BM25. Queries: map, search, context, trace, impact.
 
 pub mod bm25;
+pub mod db;
 pub mod export;
 pub mod graph;
 pub mod index;
 pub mod lang;
 pub mod parse;
 pub mod query;
+pub mod score;
 pub mod tokenize;
 
 pub use index::{BuildOptions, Index};

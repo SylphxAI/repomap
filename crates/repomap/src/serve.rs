@@ -193,3 +193,27 @@ fn open_browser(url: &str) {
         eprintln!("repomap: open {url} in your browser");
     }
 }
+
+/// Serve one prebuilt page (used by `repomap db --serve`).
+pub fn serve_static(html: &str, host: &str, port: u16, open: bool) -> Result<()> {
+    let mut server = None;
+    let mut bound = port;
+    for p in port..port.saturating_add(20) {
+        if let Ok(s) = Server::http((host, p)) {
+            server = Some(s);
+            bound = p;
+            break;
+        }
+    }
+    let server = server.ok_or_else(|| anyhow::anyhow!("no free port from {port}"))?;
+    let url = format!("http://{}:{bound}/", if host == "0.0.0.0" { "localhost" } else { host });
+    eprintln!("repomap: serving the database map at {url}  (Ctrl+C to stop)");
+    if open {
+        open_browser(&url);
+    }
+    for req in server.incoming_requests() {
+        let resp = if req.url() == "/" || req.url().starts_with("/#") || req.url() == "/index.html" { text(200, html, "text/html; charset=utf-8") } else { text(404, "not found", "text/plain") };
+        let _ = req.respond(resp);
+    }
+    Ok(())
+}

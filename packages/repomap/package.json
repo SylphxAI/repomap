@@ -1,6 +1,6 @@
 {
   "name": "@sylphx/repomap",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "mcpName": "io.github.SylphxAI/repomap",
   "description": "A map of your codebase for AI agents: code graph, search, call paths and change impact, with an interactive graph UI. Rust MCP server + CLI. Local, no API key.",
   "bin": {
@@ -15,11 +15,11 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "@sylphx/repomap-darwin-arm64": "1.1.2",
-    "@sylphx/repomap-darwin-x64": "1.1.2",
-    "@sylphx/repomap-linux-x64-gnu": "1.1.2",
-    "@sylphx/repomap-linux-arm64-gnu": "1.1.2",
-    "@sylphx/repomap-win32-x64-msvc": "1.1.2"
+    "@sylphx/repomap-darwin-arm64": "1.2.0",
+    "@sylphx/repomap-darwin-x64": "1.2.0",
+    "@sylphx/repomap-linux-x64-gnu": "1.2.0",
+    "@sylphx/repomap-linux-arm64-gnu": "1.2.0",
+    "@sylphx/repomap-win32-x64-msvc": "1.2.0"
   },
   "keywords": [
     "mcp",

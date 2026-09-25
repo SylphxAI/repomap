@@ -1,3 +1,4 @@
+mod dblive;
 mod hook;
 mod mcp;
 mod serve;
@@ -27,6 +28,11 @@ Commands:
   context <target>      Code, callers, callees, tests for a symbol or file
   trace <from> [to]     Call path between two symbols, or a call tree (--callers)
   impact [target...]    Blast radius of a change (--changed for the current git diff)
+  db [table]            Database map: tables, keys, indexes and the code that queries them
+                        (repo schema files, or live read-only via --url-env DATABASE_URL;
+                        --serve / --out map.html for the graph)
+  score [dir]           Agent-readiness score (0-100) with fixes and a README badge
+                        (--update-readme README.md, --min 70 to fail CI below a score)
   index [dir]           Build the index and print timings (--no-cache, --json)
   mcp                   Run the MCP server on stdio (default when stdin is not a terminal)
   version               Print the version
@@ -47,7 +53,7 @@ impl Args {
     fn parse(raw: Vec<String>) -> Args {
         let mut positional = Vec::new();
         let mut flags = std::collections::HashMap::new();
-        let takes_value = ["root", "C", "focus", "limit", "path", "kind", "depth", "base", "port", "host", "out", "json-out", "client", "code-lines", "command"];
+        let takes_value = ["update-readme", "min", "url", "url-env", "table", "root", "C", "focus", "limit", "path", "kind", "depth", "base", "port", "host", "out", "json-out", "client", "code-lines", "command"];
         let mut it = raw.into_iter().peekable();
         while let Some(a) = it.next() {
             if let Some(name) = a.strip_prefix("--").or_else(|| a.strip_prefix('-').filter(|n| n.len() == 1)) {
@@ -136,6 +142,8 @@ fn run() -> Result<()> {
         "export" => export(&args),
         "index" => index_cmd(&args),
         "map" | "search" | "context" | "trace" | "impact" => query_cmd(&cmd, &args),
+        "db" => db_cmd(&args),
+        "score" => score_cmd(&args),
         other => bail!("unknown command `{other}`. Run `repomap help`."),
     }
 }
@@ -261,5 +269,73 @@ fn export(args: &Args) -> Result<()> {
         "Wrote {out} ({} files, {} symbols). Open it in a browser or publish it anywhere.",
         data["stats"]["code_files"], data["stats"]["symbols"]
     );
+    Ok(())
+}
+
+fn db_cmd(args: &Args) -> Result<()> {
+    let root = args.root();
+    let idx = Index::build(&root, &BuildOptions::default())?;
+    let url = match (args.flag("url"), args.flag("url-env")) {
+        (Some(u), _) => Some(u.to_string()),
+        (None, Some(var)) => Some(std::env::var(var).map_err(|_| anyhow::anyhow!("environment variable `{var}` is not set"))?),
+        _ => None,
+    };
+    let schema = tools::db_schema(&idx, url.as_deref())?;
+    let table = args.flag("table").or_else(|| args.positional.first().map(|s| s.as_str()));
+    if args.flag("out").is_some() || args.on("serve") {
+        let data = schema.graph_json(
+            &idx.root.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(),
+            VERSION,
+            idx.git.remote_web.as_deref(),
+            idx.git.commit.as_deref(),
+        );
+        let html = serve::static_html(&data);
+        if let Some(out) = args.flag("out") {
+            std::fs::write(out, &html)?;
+            eprintln!("Wrote {out} ({} tables)", schema.tables.len());
+        }
+        if args.on("serve") {
+            return serve::serve_static(&html, args.flag("host").unwrap_or("127.0.0.1"), args.num("port").unwrap_or(7879) as u16, !args.on("no-open"));
+        }
+        return Ok(());
+    }
+    if args.on("json") {
+        let v = match table.and_then(|t| schema.table(t)) {
+            Some(t) => serde_json::to_value(t)?,
+            None => serde_json::to_value(&schema)?,
+        };
+        println!("{}", serde_json::to_string_pretty(&v)?);
+    } else {
+        print!("{}", schema.text(table));
+    }
+    Ok(())
+}
+
+fn score_cmd(args: &Args) -> Result<()> {
+    let root = args.root_or_pos(0);
+    let idx = Index::build(&root, &BuildOptions::default())?;
+    let score = idx.agent_score();
+    if args.on("json") {
+        println!("{}", serde_json::to_string_pretty(&score)?);
+    } else {
+        print!("{}", score.text());
+    }
+    if let Some(readme) = args.flag("update-readme") {
+        let path = idx.root.join(readme);
+        let text = std::fs::read_to_string(&path).unwrap_or_default();
+        match repomap_core::score::update_badge(&text, &score.badge_markdown, args.on("insert")) {
+            Some(new) if new != text => {
+                std::fs::write(&path, new)?;
+                eprintln!("Updated the agent-ready badge in {readme}");
+            }
+            Some(_) => eprintln!("{readme}: badge already up to date"),
+            None => eprintln!("{readme}: no agent-ready badge found (add --insert to place one under the title)"),
+        }
+    }
+    if let Some(min) = args.num("min") {
+        if (score.score as usize) < min {
+            bail!("agent-readiness {} is below the minimum {min}", score.score);
+        }
+    }
     Ok(())
 }
