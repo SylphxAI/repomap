@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Instant, UNIX_EPOCH};
 
-const CACHE_VERSION: u32 = 5;
+const CACHE_VERSION: u32 = 6;
 const MAX_FILE_BYTES: u64 = 1_000_000;
 
 /// Directories skipped even when they are not git-ignored.
