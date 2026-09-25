@@ -157,10 +157,13 @@ jobs:
           cat /tmp/err.txt; ! grep -q wrongsecret /tmp/err.txt
 
   action:
-    name: GitHub Action (published package)
+    name: GitHub Action (this build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked -p repomap && echo "REPOMAP_BIN=$PWD/target/release/repomap" >> "$GITHUB_ENV"
       - id: s
         uses: ./
       - run: |

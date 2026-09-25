@@ -43,8 +43,10 @@ runs:
         TARGET: ${{ inputs.path }}
       run: |
         set -euo pipefail
-        npx -y "@sylphx/repomap@${REPOMAP_VERSION}" score "$TARGET" --json > "$RUNNER_TEMP/repomap-score.json"
-        npx -y "@sylphx/repomap@${REPOMAP_VERSION}" score "$TARGET" >> "$GITHUB_STEP_SUMMARY"
+        # REPOMAP_BIN (a local binary) overrides the npm package, e.g. for testing a build.
+        run_repomap() { if [ -n "${REPOMAP_BIN:-}" ]; then "$REPOMAP_BIN" "$@"; else npx -y "@sylphx/repomap@${REPOMAP_VERSION}" "$@"; fi; }
+        run_repomap score "$TARGET" --json > "$RUNNER_TEMP/repomap-score.json"
+        run_repomap score "$TARGET" >> "$GITHUB_STEP_SUMMARY"
         {
           echo "score=$(jq -r .score "$RUNNER_TEMP/repomap-score.json")"
           echo "badge-url=$(jq -r .badge_url "$RUNNER_TEMP/repomap-score.json")"
@@ -59,7 +61,8 @@ runs:
         MESSAGE: ${{ inputs.commit-message }}
       run: |
         set -euo pipefail
-        npx -y "@sylphx/repomap@${REPOMAP_VERSION}" score "$TARGET" --update-readme "$README_PATH" --insert > /dev/null
+        run_repomap() { if [ -n "${REPOMAP_BIN:-}" ]; then "$REPOMAP_BIN" "$@"; else npx -y "@sylphx/repomap@${REPOMAP_VERSION}" "$@"; fi; }
+        run_repomap score "$TARGET" --update-readme "$README_PATH" --insert > /dev/null
         cd "$TARGET"
         if git diff --quiet -- "$README_PATH"; then
           echo "Badge already up to date"
