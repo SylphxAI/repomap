@@ -162,7 +162,7 @@ function mount(data: Data) {
           res.color = state.mode === "deps" ? (dd === 0 ? "#ffffff" : DEP) : DEPTH[Math.min(dd, 3)];
           res.zIndex = 2;
           res.size = (attrs.size as number) * (dd === 0 ? 1.6 : 1.25);
-          if (dd <= 1) res.forceLabel = true;
+          if (dd === 0 || (dd === 1 && d.r > 0.15)) res.forceLabel = true;
         }
       } else if (state.hovered) {
         if (node === state.hovered || state.neighbors.has(node)) {
