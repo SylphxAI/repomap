@@ -97,8 +97,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: '24'
+      # Trusted publishing (OIDC) needs npm >= 11.5.1; no long-lived token is used.
+      - run: npm install -g npm@^11.5.1 && npm --version
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.4.0'
@@ -116,15 +117,15 @@ jobs:
             chmod +x packages/npm/$key/*
           done
           cp README.md LICENSE packages/repomap/
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm (trusted publishing, OIDC)
         run: |
           set -euo pipefail
           pub() {
             local dir=$1 name
             name=$(node -p "require('./$dir/package.json').name")
             if npm view "$name@$V" version >/dev/null 2>&1; then echo "= $name@$V already live"; return; fi
+            # Each package trusts SylphxAI/repomap .github/workflows/release.yml;
+            # npm exchanges the job's OIDC token and adds provenance automatically.
             (cd "$dir" && npm publish --access public)
             echo "+ $name@$V published"
           }

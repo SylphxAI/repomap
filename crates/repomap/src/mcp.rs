@@ -174,15 +174,17 @@ fn check(p: PathBuf) -> Result<PathBuf, String> {
     }
 }
 
-fn file_uri_to_path(uri: &str) -> Option<PathBuf> {
+pub fn file_uri_to_path(uri: &str) -> Option<PathBuf> {
     let rest = uri.strip_prefix("file://")?;
     let mut bytes = Vec::with_capacity(rest.len());
     let b = rest.as_bytes();
     let mut i = 0;
     while i < b.len() {
         if b[i] == b'%' && i + 2 < b.len() {
-            if let Ok(v) = u8::from_str_radix(&rest[i + 1..i + 3], 16) {
-                bytes.push(v);
+            // Byte-wise: `&rest[i+1..i+3]` could split a UTF-8 character and panic.
+            let h = |c: u8| (c as char).to_digit(16);
+            if let (Some(x), Some(y)) = (h(b[i + 1]), h(b[i + 2])) {
+                bytes.push((x * 16 + y) as u8);
                 i += 3;
                 continue;
             }
@@ -194,4 +196,17 @@ fn file_uri_to_path(uri: &str) -> Option<PathBuf> {
     // file:///C:/x on Windows
     let s = if s.len() > 3 && s.as_bytes()[0] == b'/' && s.as_bytes()[2] == b':' { s[1..].to_string() } else { s };
     Some(PathBuf::from(s))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn file_uris_never_panic() {
+        assert_eq!(file_uri_to_path("file:///a%20b/c").unwrap(), PathBuf::from("/a b/c"));
+        for u in ["file:///%aé", "file:///%", "file:///%é%", "file:///中%2", "file:///%zz"] {
+            let _ = file_uri_to_path(u);
+        }
+    }
 }

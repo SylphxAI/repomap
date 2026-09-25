@@ -49,6 +49,37 @@ pub fn color_for(score: u32) -> &'static str {
     }
 }
 
+fn color_hex(color: &str) -> &'static str {
+    match color {
+        "brightgreen" => "#4c1",
+        "green" => "#97ca00",
+        "yellow" => "#dfb317",
+        "orange" => "#fe7d37",
+        _ => "#e05d44",
+    }
+}
+
+/// A self-contained, shields-style SVG badge (no network needed to render).
+pub fn badge_svg(score: u32) -> String {
+    let label = "agent-ready";
+    let value = format!("{score}/100");
+    // Verdana 11px averages about 6.5px per character in these strings.
+    let w = |t: &str| (t.len() as f32 * 6.5 + 10.0).round() as u32;
+    let (lw, vw) = (w(label), w(&value));
+    let total = lw + vw;
+    let color = color_hex(color_for(score));
+    format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="{total}" height="20" role="img" aria-label="{label}: {value}"><title>{label}: {value}</title><linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient><clipPath id="r"><rect width="{total}" height="20" rx="3" fill="#fff"/></clipPath><g clip-path="url(#r)"><rect width="{lw}" height="20" fill="#555"/><rect x="{lw}" width="{vw}" height="20" fill="{color}"/><rect width="{total}" height="20" fill="url(#s)"/></g><g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11"><text x="{lx}" y="15" fill="#010101" fill-opacity=".3">{label}</text><text x="{lx}" y="14">{label}</text><text x="{vx}" y="15" fill="#010101" fill-opacity=".3">{value}</text><text x="{vx}" y="14">{value}</text></g></svg>"##,
+        lx = lw / 2,
+        vx = lw + vw / 2,
+    )
+}
+
+/// Markdown for a badge image (hosted on mark.sylphx.com, or a committed SVG file).
+pub fn badge_markdown(score: u32, image: &str) -> String {
+    format!("[![agent-ready {score}/100]({image})]({BADGE_LINK})")
+}
+
 pub fn badge_url(score: u32) -> String {
     format!("{BADGE_BASE}agent--ready-{score}%2F100-{}", color_for(score))
 }
@@ -377,7 +408,7 @@ impl Index {
 
         let score: u32 = checks.iter().map(|c| c.score).sum();
         let badge_url = badge_url(score);
-        let badge_markdown = format!("[![agent-ready {score}/100]({badge_url})]({BADGE_LINK})");
+        let badge_markdown = badge_markdown(score, &badge_url);
         Score { score, color: color_for(score), badge_url, badge_markdown, checks }
     }
 }
@@ -414,7 +445,7 @@ pub fn update_badge(readme: &str, markdown: &str, insert: bool) -> Option<String
             return Some(format!("{}{start}{markdown}{end}{}", &readme[..a], &readme[b + end.len()..]));
         }
     }
-    let re = regex::Regex::new(r"\[!\[agent-ready[^\]]*\]\(https://mark\.sylphx\.com/badge/agent--ready-[^)]*\)\]\([^)]*\)").unwrap();
+    let re = regex::Regex::new(r"\[!\[agent-ready[^\]]*\]\((?:https://mark\.sylphx\.com/badge/agent--ready-[^)]*|[^)]*agent-ready\.svg)\)\]\([^)]*\)").unwrap();
     if re.is_match(readme) {
         return Some(re.replace(readme, regex::NoExpand(markdown)).to_string());
     }
@@ -443,6 +474,10 @@ mod tests {
         let r2 = update_badge("# T\n[![agent-ready 50/100](https://mark.sylphx.com/badge/agent--ready-50%2F100-orange)](y) more", md, false).unwrap();
         assert!(r2.contains("90%2F100") && r2.ends_with(" more"));
         assert!(update_badge("# T\nnothing", md, false).is_none());
+        let stat = badge_markdown(91, ".github/agent-ready.svg");
+        assert!(update_badge(&r2, &stat, false).unwrap().contains(".github/agent-ready.svg"));
+        let svg = badge_svg(91);
+        assert!(svg.starts_with("<svg") && svg.contains("91/100") && svg.contains("#4c1"));
         assert!(update_badge("# T\nnothing", md, true).unwrap().starts_with("# T\n\n<!-- repomap:agent-ready -->"));
     }
 

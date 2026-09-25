@@ -13,8 +13,14 @@ Do not open public issues for sensitive reports.
   `repomap setup`.
 - The MCP server speaks stdio only.
 - `repomap serve` binds to `127.0.0.1` by default and rejects requests whose
-  `Host` header is not a loopback address (DNS-rebinding guard). The API is
-  read-only and only reads files that are in the index for the served root.
+  `Host` header is not a loopback address (DNS-rebinding guard). Binding any
+  other address requires a token (`--token`, `REPOMAP_TOKEN`, or a generated
+  one printed in the URL). Requests are handled by a fixed worker pool. The API
+  is read-only and only reads files that are in the index for the served root.
+- `repomap db` reads only catalog metadata, inside read-only transactions or
+  read-only connections, and never stores or prints the connection string.
+- npm packages are published from GitHub Actions with trusted publishing
+  (OIDC) and carry provenance; no long-lived npm token is used.
 - `repomap export` embeds file paths, symbol names and line numbers, but no
   source code. Review the file before you publish it for a private repository.
 - The parse cache lives in your OS cache directory (`REPOMAP_CACHE_DIR` overrides it) and

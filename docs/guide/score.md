@@ -26,6 +26,8 @@ Every check that is not at full marks comes with a concrete fix, sorted by point
 [![agent-ready 87/100](https://mark.sylphx.com/badge/agent--ready-87%2F100-brightgreen)](https://github.com/SylphxAI/repomap#agent-readiness-score)
 ```
 
+Prefer not to depend on a hosted image? `repomap score --badge-style static --update-readme README.md` writes a self-contained `.github/agent-ready.svg` and points the badge at it. The GitHub Action takes `badge-style: static`.
+
 The colour follows the score: 85+ brightgreen, 70+ green, 55+ yellow, 40+ orange, otherwise red. `--update-readme` replaces the badge between `<!-- repomap:agent-ready -->` markers, or any existing agent-ready badge. With `--insert`, it places one under the title.
 
 ## GitHub Action

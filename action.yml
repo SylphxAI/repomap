@@ -14,6 +14,9 @@ inputs:
   update-readme:
     description: 'Replace the agent-ready badge in the README (or insert one under the title) and commit it.'
     default: 'false'
+  badge-style:
+    description: 'mark (hosted image on mark.sylphx.com) or static (commit a self-contained .github/agent-ready.svg).'
+    default: 'mark'
   commit-message:
     description: 'Commit message for the badge update.'
     default: 'docs: update agent-readiness badge'
@@ -58,19 +61,22 @@ runs:
         REPOMAP_VERSION: ${{ inputs.version }}
         TARGET: ${{ inputs.path }}
         README_PATH: ${{ inputs.readme }}
+        BADGE_STYLE: ${{ inputs.badge-style }}
         MESSAGE: ${{ inputs.commit-message }}
       run: |
         set -euo pipefail
         run_repomap() { if [ -n "${REPOMAP_BIN:-}" ]; then "$REPOMAP_BIN" "$@"; else npx -y "@sylphx/repomap@${REPOMAP_VERSION}" "$@"; fi; }
-        run_repomap score "$TARGET" --update-readme "$README_PATH" --insert > /dev/null
+        run_repomap score "$TARGET" --update-readme "$README_PATH" --insert --badge-style "$BADGE_STYLE" > /dev/null
         cd "$TARGET"
-        if git diff --quiet -- "$README_PATH"; then
+        git add -N .github/agent-ready.svg 2>/dev/null || true
+        if git diff --quiet -- "$README_PATH" .github/agent-ready.svg 2>/dev/null; then
           echo "Badge already up to date"
           exit 0
         fi
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add "$README_PATH"
+        [ -f .github/agent-ready.svg ] && git add .github/agent-ready.svg || true
         git commit -m "$MESSAGE"
         git push
     - if: ${{ inputs.min-score != '0' }}
