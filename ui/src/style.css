@@ -19,10 +19,12 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.45 var(--sans); overflow: hidden; -webkit-font-smoothing: antialiased; }
-#stage { position: fixed; inset: 0; background:
-  radial-gradient(1200px 800px at 70% 20%, rgba(90, 110, 255, 0.07), transparent 60%),
-  radial-gradient(900px 700px at 15% 85%, rgba(255, 90, 170, 0.05), transparent 60%),
+body { background:
+  radial-gradient(1200px 800px at 70% 15%, rgba(90, 110, 255, 0.08), transparent 60%),
+  radial-gradient(900px 700px at 25% 90%, rgba(255, 90, 170, 0.05), transparent 60%),
   var(--bg); }
+#stage { position: fixed; inset: 0; }
+
 button { font: inherit; color: inherit; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -62,6 +64,7 @@ a:hover { text-decoration: underline; }
 .mod .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; direction: rtl; text-align: left; }
 .mod .count { color: var(--faint); font: 11px var(--mono); }
 .mod.off { opacity: 0.35; }
+.mod-sep { margin: 10px 8px 4px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--faint); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* Detail panel */
 #panel { position: fixed; right: 16px; top: 16px; bottom: 16px; width: 400px; z-index: 5; display: none; flex-direction: column; overflow: hidden; }
@@ -123,4 +126,11 @@ pre.code .l i { display: inline-block; width: 44px; padding-right: 12px; text-al
   #panel { left: 16px; right: 16px; width: auto; top: auto; height: 55vh; }
   #search { top: 84px; }
   #credit { display: none; }
+}
+
+@media (min-width: 901px) {
+  #stage { left: 282px; }
+  /* Centre the search over the free canvas, beside the legend and the panel. */
+  #search { left: calc(200px + 50vw); width: min(560px, calc(100vw - 440px)); }
+  body.panel-open #search { left: calc(192px + 50vw - 208px); width: min(560px, calc(100vw - 840px)); }
 }

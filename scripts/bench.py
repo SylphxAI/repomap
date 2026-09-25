@@ -73,6 +73,8 @@ for name in sorted(os.listdir(CORPUS)):
     first_ms, _ = mcp.tool("map", {})
     mp = json.loads(mcp.tool("map", {"format": "json", "limit": 20})[1]["content"][0]["text"])
     syms = [s["symbol"]["name"] for s in mp["key_symbols"]][:10]
+    modules = [f"{m['name']} ({m['files']})" for m in mp["modules"]][:10]
+    aux = [f"{a[0]} ({a[1]})" for a in mp.get("aux", [])]
     lat = {"search": [], "context": [], "impact": [], "trace": []}
     for q in PHRASES + [s.split(".")[-1] for s in syms]:
         lat["search"].append(mcp.tool("search", {"query": q})[0])
@@ -90,6 +92,8 @@ for name in sorted(os.listdir(CORPUS)):
         "warm_index_ms": round(warm_wall),
         "peak_rss_mb": round(max(r for _, r in colds)),
         "mcp_first_call_ms": round(first_ms),
+        "modules": modules,
+        "aux": aux,
         **{f"{k}_p50_ms": pct(v, 0.5) for k, v in lat.items()},
         **{f"{k}_p95_ms": pct(v, 0.95) for k, v in lat.items()},
     }
@@ -102,3 +106,7 @@ print("| repo | code files | symbols | call edges | cold index | warm index | pe
 print("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
 for r in results:
     print(f"| {r['repo']} | {r['files']:,} | {r['symbols']:,} | {r['call_edges']:,} | {r['cold_index_ms']/1000:.1f} s | {r['warm_index_ms']/1000:.2f} s | {r['peak_rss_mb']} MB | {r['search_p50_ms']} ms | {r['context_p50_ms']} ms | {r['impact_p50_ms']} ms | {r['trace_p50_ms']} ms |")
+
+print("\n### Modules found (top 10 by size)\n")
+for r in results:
+    print(f"- **{r['repo']}**: {', '.join(r['modules'])}" + (f"  \n  _grouped separately:_ {', '.join(r['aux'])}" if r["aux"] else ""))

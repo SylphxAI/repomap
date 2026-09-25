@@ -36,6 +36,7 @@ pub struct FileEntry {
     pub lines: u32,
     pub bytes: u64,
     pub is_test: bool,
+    pub role: Role,
     /// Symbols of this file live at `symbols[sym_start..sym_end]`.
     pub sym_start: u32,
     pub sym_end: u32,
@@ -98,6 +99,49 @@ pub struct Community {
     pub id: u32,
     pub name: String,
     pub files: Vec<u32>,
+    /// `core`, or the auxiliary role: `tests`, `examples`, `docs`, `benchmarks`.
+    pub kind: String,
+}
+
+/// What a file is for. Only `Core` files form code modules; the rest are
+/// grouped by role so they never name or skew the core clusters.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Role {
+    Core,
+    Test,
+    Example,
+    Doc,
+    Bench,
+}
+
+impl Role {
+    pub fn label(self) -> &'static str {
+        match self {
+            Role::Core => "core",
+            Role::Test => "tests",
+            Role::Example => "examples",
+            Role::Doc => "docs",
+            Role::Bench => "benchmarks",
+        }
+    }
+}
+
+pub fn role_of(path: &str, is_test: bool) -> Role {
+    let mut orig: Vec<&str> = path.split('/').collect();
+    orig.pop();
+    for raw in orig {
+        // Split "watchOS Example", "runtime-tests", "jvmTest" into words.
+        for w in crate::tokenize::tokenize(raw) {
+            match w.as_str() {
+                "example" | "examples" | "sample" | "samples" | "demo" | "demos" | "playground" | "playgrounds" | "showcase" | "tutorial" | "tutorials" => return Role::Example,
+                "docs" | "doc" | "documentation" | "website" => return Role::Doc,
+                "bench" | "benches" | "benchmark" | "benchmarks" => return Role::Bench,
+                "test" | "tests" | "__tests__" | "spec" | "specs" | "testdata" | "fixtures" | "__fixtures__" | "__mocks__" | "e2e" | "testing" => return Role::Test,
+                _ => {}
+            }
+        }
+    }
+    if is_test { Role::Test } else { Role::Core }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -448,6 +492,7 @@ fn assemble(root: PathBuf, kept: &[(&Candidate, CacheEntry)]) -> Index {
             lines: e.facts.lines,
             bytes: c.size,
             is_test: is_test_path(&c.path),
+            role: role_of(&c.path, is_test_path(&c.path)),
             sym_start: base,
             sym_end: symbols.len() as u32,
         });
@@ -537,6 +582,14 @@ mod tests {
         assert!(is_test_path("pkg/foo_test.go"));
         assert!(is_test_path("a/b.spec.ts"));
         assert!(!is_test_path("src/testing_utils.ts"));
+        assert_eq!(role_of("examples/tutorial/flaskr/db.py", false), Role::Example);
+        assert_eq!(role_of("src/flask/app.py", false), Role::Core);
+        assert_eq!(role_of("benchmarks/jsx/a.ts", false), Role::Bench);
+        assert_eq!(role_of("src/a.test.ts", true), Role::Test);
+        assert_eq!(role_of("okhttp/src/jvmTest/kotlin/A.kt", false), Role::Test);
+        assert_eq!(role_of("runtime-tests/node/index.ts", false), Role::Test);
+        assert_eq!(role_of("src/latest/a.ts", false), Role::Core);
+        assert_eq!(role_of("watchOS Example/x/A.swift", false), Role::Example);
     }
 
     #[test]

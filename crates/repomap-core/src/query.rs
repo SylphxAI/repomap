@@ -161,6 +161,8 @@ pub struct MapResult {
     pub entry_points: Vec<String>,
     pub focus: Option<String>,
     pub outline: Vec<Outline>,
+    /// Tests, examples, docs and benchmarks, grouped by role (not modules).
+    pub aux: Vec<(String, usize)>,
 }
 
 #[derive(Debug, Serialize)]
@@ -243,9 +245,14 @@ impl Index {
 
         // Modules: communities intersecting the focus.
         let mut modules = Vec::new();
+        let mut aux: Vec<(String, usize)> = Vec::new();
         for c in &self.communities {
             let files: Vec<u32> = c.files.iter().copied().filter(|f| focus_files.contains(f)).collect();
             if files.is_empty() {
+                continue;
+            }
+            if c.kind != "core" {
+                aux.push((c.name.clone(), files.len()));
                 continue;
             }
             let mut fs = files.clone();
@@ -329,6 +336,7 @@ impl Index {
             entry_points,
             focus,
             outline,
+            aux,
         }
     }
 }
@@ -364,6 +372,10 @@ impl MapResult {
                 let _ = write!(o, " | uses: {}", m.depends_on.join(", "));
             }
             o.push('\n');
+        }
+        if !self.aux.is_empty() {
+            let parts: Vec<String> = self.aux.iter().map(|(n, c)| format!("{n} ({c} files)")).collect();
+            let _ = writeln!(o, "Also: {}", parts.join(", "));
         }
         let _ = writeln!(o, "\n## Most central files");
         for f in &self.key_files {

@@ -27,10 +27,12 @@ pub enum Lang {
     CSharp,
     Ruby,
     Php,
+    Kotlin,
+    Swift,
 }
 
 impl Lang {
-    pub const ALL: [Lang; 12] = [
+    pub const ALL: [Lang; 14] = [
         Lang::TypeScript,
         Lang::Tsx,
         Lang::JavaScript,
@@ -43,6 +45,8 @@ impl Lang {
         Lang::CSharp,
         Lang::Ruby,
         Lang::Php,
+        Lang::Kotlin,
+        Lang::Swift,
     ];
 
     pub fn from_path(path: &str) -> Option<Lang> {
@@ -64,6 +68,8 @@ impl Lang {
             "cs" => Lang::CSharp,
             "rb" | "rake" => Lang::Ruby,
             "php" => Lang::Php,
+            "kt" | "kts" => Lang::Kotlin,
+            "swift" => Lang::Swift,
             _ => return None,
         })
     }
@@ -82,6 +88,8 @@ impl Lang {
             Lang::CSharp => "C#",
             Lang::Ruby => "Ruby",
             Lang::Php => "PHP",
+            Lang::Kotlin => "Kotlin",
+            Lang::Swift => "Swift",
         }
     }
 
@@ -99,6 +107,8 @@ impl Lang {
             Lang::CSharp => tree_sitter_c_sharp::LANGUAGE.into(),
             Lang::Ruby => tree_sitter_ruby::LANGUAGE.into(),
             Lang::Php => tree_sitter_php::LANGUAGE_PHP.into(),
+            Lang::Kotlin => tree_sitter_kotlin_ng::LANGUAGE.into(),
+            Lang::Swift => tree_sitter_swift::LANGUAGE.into(),
         }
     }
 
@@ -127,13 +137,15 @@ impl Lang {
             Lang::CSharp => CSHARP.into(),
             Lang::Ruby => RUBY.into(),
             Lang::Php => PHP.into(),
+            Lang::Kotlin => KOTLIN.into(),
+            Lang::Swift => SWIFT.into(),
         }
     }
 
     /// Compiled query, built lazily once per language per process.
     pub fn query(self) -> &'static Query {
         const EMPTY: OnceLock<Query> = OnceLock::new();
-        static CACHE: [OnceLock<Query>; 12] = [EMPTY; 12];
+        static CACHE: [OnceLock<Query>; 14] = [EMPTY; 14];
         let idx = Lang::ALL.iter().position(|l| *l == self).expect("lang in table");
         CACHE[idx].get_or_init(|| {
             Query::new(&self.grammar(), &self.source())
@@ -185,9 +197,7 @@ pub fn is_searchable_text(path: &str) -> bool {
             | "vue"
             | "svelte"
             | "astro"
-            | "kt"
-            | "kts"
-            | "swift"
+
             | "scala"
             | "lua"
             | "ex"
@@ -397,6 +407,31 @@ const PHP: &str = r#"
 (class_interface_clause (name) @ref)
 (class_interface_clause (qualified_name (name) @ref))
 (namespace_use_clause (qualified_name) @import)
+"#;
+
+const KOTLIN: &str = r#"
+(class_declaration name: (identifier) @name) @def.class
+(object_declaration name: (identifier) @name) @def.class
+(function_declaration name: (identifier) @name) @def.function
+(type_alias type: (identifier) @name) @def.type
+(call_expression . (identifier) @call)
+(call_expression . (navigation_expression (_) @qual (identifier) @mcall .))
+(delegation_specifier (user_type (identifier) @ref))
+(delegation_specifier (constructor_invocation (user_type (identifier) @ref)))
+(import (qualified_identifier) @import)
+"#;
+
+const SWIFT: &str = r#"
+(class_declaration name: (type_identifier) @name) @def.class
+(protocol_declaration name: (type_identifier) @name) @def.interface
+(function_declaration name: (simple_identifier) @name) @def.function
+(protocol_function_declaration name: (simple_identifier) @name) @def.method
+(typealias_declaration name: (type_identifier) @name) @def.type
+(class_declaration name: (user_type (type_identifier) @scope.type)) @scope.impl
+(inheritance_specifier inherits_from: (user_type (type_identifier) @ref))
+(call_expression . (simple_identifier) @call)
+(call_expression . (navigation_expression target: (_) @qual suffix: (navigation_suffix suffix: (simple_identifier) @mcall)))
+(import_declaration (identifier) @import)
 "#;
 
 #[cfg(test)]

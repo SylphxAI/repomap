@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0
+
+- **Better modules.** Tests, examples, docs and benchmarks are detected by path (including `jvmTest`, `runtime-tests`, `watchOS Example`) and grouped by role. They no longer join or name core modules. Modules are named after their dominant directory with generic segments dropped (`tokio/runtime`, `flask/sansio`, `okhttp/okhttp3`). Name clashes are settled by the sub-directory that sets a module apart, or by its central file. Unconnected stragglers go into one `other` group instead of many one-file modules.
+- **Kotlin and Swift** now get a symbol graph: definitions, calls, imports (Kotlin) and inheritance.
+- **Claude Code hook.** `repomap setup --claude-hooks` installs an opt-in PreToolUse hook that adds repomap context (definition, callers, module) to Grep and Glob. `repomap hook` is the command; `setup --remove` removes it.
+- **Graph UI polish:**
+  - Selecting a file no longer over-zooms, and it stays clear of the side panel.
+  - The canvas sits beside the module legend.
+  - Search is centred over the free space.
+  - Palette colours are more distinct.
+  - Tests, examples and docs are muted and hidden by default in bigger repos.
+- **Live demo:** `/demo` on the docs site hosts exported maps of excalidraw, axum and flask, rebuilt by CI.
+- **README demo GIF**, recorded from the real UI (`scripts/record-demo.py`).
+
 ## 1.0.1
 
 - Old launch commands keep working: `npx @sylphx/locus --root=/repo` (flags with no subcommand) starts the MCP server, and `LOCUS_ROOT`/`CODERAG_ROOT` are honoured.

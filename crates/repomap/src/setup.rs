@@ -100,6 +100,27 @@ pub fn run(flags: &HashMap<String, String>) -> Result<()> {
             Err(e) => println!("  ! {:<17} {e}", c.label),
         }
     }
+    // Claude Code hook: opt in with --claude-hooks; --remove always cleans it up.
+    let want_hooks = flags.contains_key("claude-hooks") || flags.contains_key("hooks");
+    let settings = dirs::home_dir().unwrap_or_default().join(".claude").join("settings.json");
+    if want_hooks || (remove && settings.exists()) {
+        let command = hook_command();
+        match edit_claude_hook(&settings, &command, dry, remove) {
+            Ok(Change::Unchanged) if want_hooks => println!("  = {:<17} Grep/Glob hook already installed ({})", "Claude Code hook", settings.display()),
+            Ok(Change::Unchanged) => {}
+            Ok(Change::Wrote(what)) => {
+                touched += 1;
+                let what = if dry { format!("would be {}", what.replace("wrote", "written to")) } else { what.to_string() };
+                println!("  + {:<17} {} {} (PreToolUse Grep|Glob -> `{command}`)", "Claude Code hook", what, settings.display());
+                if !remove && command.starts_with("npx") {
+                    println!("    Tip: `npm i -g @sylphx/repomap` makes the hook start faster (it then runs `repomap hook`).");
+                }
+            }
+            Err(e) => println!("  ! {:<17} {e}", "Claude Code hook"),
+        }
+    } else if !dry && !remove {
+        println!("  Tip: add --claude-hooks to enrich Claude Code's Grep/Glob with repomap context.");
+    }
     if found == 0 {
         println!("  No MCP clients detected. Add this to your client's MCP config:");
         println!("  {{\"mcpServers\": {{\"repomap\": {{\"command\": \"{cmd}\", \"args\": {}}}}}}}", serde_json::to_string(&args)?);
@@ -200,6 +221,72 @@ fn edit_codex(path: &Path, cmd: &str, args: &[String], dry: bool, remove: bool) 
     Ok(Change::Wrote(if remove { "removed from" } else { "wrote" }))
 }
 
+/// Native `repomap` on PATH starts in milliseconds; otherwise go through npx.
+fn hook_command() -> String {
+    if on_path("repomap") {
+        "repomap hook".into()
+    } else {
+        "npx -y @sylphx/repomap hook".into()
+    }
+}
+
+fn is_our_hook(h: &Value) -> bool {
+    h.get("command").and_then(|c| c.as_str()).map_or(false, |c| c.contains("repomap hook") || c.contains("@sylphx/repomap hook"))
+}
+
+/// Add, update or remove the PreToolUse Grep|Glob hook in Claude Code settings.
+fn edit_claude_hook(path: &Path, command: &str, dry: bool, remove: bool) -> Result<Change> {
+    let mut root: Value = if path.exists() {
+        let txt = std::fs::read_to_string(path)?;
+        if txt.trim().is_empty() { json!({}) } else { serde_json::from_str(&txt).map_err(|e| anyhow::anyhow!("cannot parse {} ({e})", path.display()))? }
+    } else {
+        json!({})
+    };
+    let obj = root.as_object_mut().ok_or_else(|| anyhow::anyhow!("{} is not a JSON object", path.display()))?;
+    let hooks = obj.entry("hooks").or_insert_with(|| json!({}));
+    let hooks = hooks.as_object_mut().ok_or_else(|| anyhow::anyhow!("`hooks` is not an object"))?;
+    let pre = hooks.entry("PreToolUse").or_insert_with(|| json!([]));
+    let groups = pre.as_array_mut().ok_or_else(|| anyhow::anyhow!("`hooks.PreToolUse` is not an array"))?;
+    let want = json!({"matcher": "Grep|Glob", "hooks": [{"type": "command", "command": command, "timeout": 10}]});
+    let ours: Vec<usize> = groups
+        .iter()
+        .enumerate()
+        .filter(|(_, g)| g.get("hooks").and_then(|h| h.as_array()).map_or(false, |hs| hs.iter().any(is_our_hook)))
+        .map(|(i, _)| i)
+        .collect();
+    if remove {
+        if ours.is_empty() {
+            return Ok(Change::Unchanged);
+        }
+        for i in ours.into_iter().rev() {
+            groups.remove(i);
+        }
+    } else {
+        if ours.len() == 1 && groups[ours[0]] == want {
+            return Ok(Change::Unchanged);
+        }
+        for i in ours.into_iter().rev() {
+            groups.remove(i);
+        }
+        groups.push(want);
+    }
+    if groups.is_empty() {
+        hooks.remove("PreToolUse");
+    }
+    if hooks.is_empty() {
+        obj.remove("hooks");
+    }
+    if !dry {
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+        let tmp = path.with_extension("repomap-tmp");
+        std::fs::write(&tmp, serde_json::to_string_pretty(&root)? + "\n")?;
+        std::fs::rename(&tmp, path)?;
+    }
+    Ok(Change::Wrote(if remove { "removed from" } else { "wrote" }))
+}
+
 fn claude_cli(cmd: &str, args: &[String], dry: bool, remove: bool) -> Result<Change> {
     let exists = Command::new("claude").args(["mcp", "get", NAME]).output().map(|o| o.status.success()).unwrap_or(false);
     if remove {
@@ -253,6 +340,27 @@ mod tests {
         assert!(matches!(edit_codex(&toml, "npx", &args, false, false).unwrap(), Change::Unchanged));
         let t = std::fs::read_to_string(&toml).unwrap();
         assert!(t.contains("model = \"o3\"") && t.contains("[mcp_servers.repomap]"), "{t}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn claude_hook_is_idempotent_and_removable() {
+        let dir = std::env::temp_dir().join(format!("repomap-hook-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("settings.json");
+        std::fs::write(&path, r#"{"model":"opus","hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"x"}]}]}}"#).unwrap();
+        assert!(matches!(edit_claude_hook(&path, "repomap hook", false, false).unwrap(), Change::Wrote(_)));
+        assert!(matches!(edit_claude_hook(&path, "repomap hook", false, false).unwrap(), Change::Unchanged));
+        // Switching the command replaces our entry instead of adding a second one.
+        assert!(matches!(edit_claude_hook(&path, "npx -y @sylphx/repomap hook", false, false).unwrap(), Change::Wrote(_)));
+        let v: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(v["hooks"]["PreToolUse"].as_array().unwrap().len(), 2);
+        assert_eq!(v["model"], "opus");
+        assert!(matches!(edit_claude_hook(&path, "repomap hook", false, true).unwrap(), Change::Wrote(_)));
+        let v: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(v["hooks"]["PreToolUse"].as_array().unwrap().len(), 1);
+        assert_eq!(v["hooks"]["PreToolUse"][0]["matcher"], "Bash");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
