@@ -140,8 +140,12 @@ fn pick_root(explicit: Option<PathBuf>, default_root: Option<&PathBuf>, roots: &
     if let Some(r) = explicit {
         return check(r);
     }
-    if let Ok(r) = std::env::var("REPOMAP_ROOT") {
-        return check(PathBuf::from(r));
+    for var in ["REPOMAP_ROOT", "LOCUS_ROOT", "CODERAG_ROOT"] {
+        if let Ok(r) = std::env::var(var) {
+            if !r.is_empty() {
+                return check(PathBuf::from(r));
+            }
+        }
     }
     if let Some(r) = default_root {
         return check(r.clone());
