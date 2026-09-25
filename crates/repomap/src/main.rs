@@ -25,7 +25,7 @@ Commands:
                         (--host 0.0.0.0 requires a token: --token/REPOMAP_TOKEN, or one is generated)
   export [dir]          Write a self-contained HTML map (--out repomap.html) or --json
   map [dir]             Modules, central files, key symbols (--focus <dir> to zoom in)
-  search <query>        Hybrid symbol + BM25 code search
+  search <query>        Hybrid search: symbol names, BM25 and a local code embedding model
   context <target>      Code, callers, callees, tests for a symbol or file
   trace <from> [to]     Call path between two symbols, or a call tree (--callers)
   impact [target...]    Blast radius of a change (--changed for the current git diff)
@@ -36,6 +36,8 @@ Commands:
                         (--update-readme README.md, --min 70 to fail CI below a score,
                         --badge-style static to write a self-hosted .github/agent-ready.svg)
   index [dir]           Build the index and print timings (--no-cache, --json)
+  model                 Download the embedding model now (33 MB, once) and show where it is.
+                        REPOMAP_EMBED=0 keeps search keyword-only
   mcp                   Run the MCP server on stdio (default when stdin is not a terminal)
   version               Print the version
 
@@ -111,6 +113,7 @@ fn run() -> Result<()> {
             println!("{HELP}");
             return Ok(());
         }
+        std::thread::spawn(repomap_core::semantic::ensure);
         return mcp::serve(None);
     }
     // Legacy launches (`npx @sylphx/locus --root=/repo`) start with a flag:
@@ -120,6 +123,17 @@ fn run() -> Result<()> {
     }
     let cmd = raw.remove(0);
     let args = Args::parse(raw);
+    // Commands that search fetch the embedding model on first use. The MCP
+    // server answers at once and picks the model up when it has arrived.
+    match cmd.as_str() {
+        "mcp" => {
+            std::thread::spawn(repomap_core::semantic::ensure);
+        }
+        "serve" | "ui" | "index" | "search" => {
+            repomap_core::semantic::ensure();
+        }
+        _ => {}
+    }
     match cmd.as_str() {
         "mcp" => mcp::serve(args.flag("root").or_else(|| args.flag("C")).map(PathBuf::from)),
         "help" | "--help" | "-h" => {
@@ -155,6 +169,17 @@ fn run() -> Result<()> {
             Ok(())
         }
         "score" => score_cmd(&args),
+        "model" => {
+            let spec = repomap_core::semantic::SPEC;
+            if !repomap_core::semantic::enabled() {
+                println!("Embeddings are off (REPOMAP_EMBED=0): search is keyword-only.");
+            } else if repomap_core::semantic::ensure() {
+                println!("{} ready in {}", spec.id, mcp_kit::embed::models_dir().join(spec.id).display());
+            } else {
+                bail!("the embedding model is not available; search stays keyword-only");
+            }
+            Ok(())
+        }
         other => bail!("unknown command `{other}`. Run `repomap help`."),
     }
 }
@@ -172,6 +197,7 @@ fn index_cmd(args: &Args) -> Result<()> {
         "file_edges": idx.file_edges.len(),
         "chunks": idx.bm25.chunks.len(),
         "terms": idx.bm25.terms(),
+        "model": repomap_core::semantic::model_id(),
         "communities": idx.communities.len(),
         "parsed": s.files_parsed,
         "cached": s.files_cached,
@@ -184,8 +210,12 @@ fn index_cmd(args: &Args) -> Result<()> {
         println!("{}", serde_json::to_string_pretty(&v)?);
     } else {
         println!(
-            "Indexed {} files ({} code) in {} ms: {} symbols, {} call edges, {} file edges, {} modules, {} chunks. Parsed {}, cached {}.",
-            v["files"], v["code_files"], s.total_ms, v["symbols"], v["call_edges"], v["file_edges"], v["communities"], v["chunks"], s.files_parsed, s.files_cached
+            "Indexed {} files ({} code) in {} ms: {} symbols, {} call edges, {} file edges, {} modules, {} chunks. Parsed {}, cached {}. Search: {}.",
+            v["files"], v["code_files"], s.total_ms, v["symbols"], v["call_edges"], v["file_edges"], v["communities"], v["chunks"], s.files_parsed, s.files_cached,
+            match repomap_core::semantic::model_id() {
+                "" => "keywords only (REPOMAP_EMBED=0 or no model)".to_string(),
+                id => format!("keywords + embeddings ({id})"),
+            }
         );
     }
     Ok(())

@@ -1,5 +1,34 @@
 # Benchmarks
 
+## Search quality
+
+<!-- SEARCH:START -->
+__SEARCH__
+<!-- SEARCH:END -->
+
+### Method
+
+- **Question sets.**
+  - [semble's benchmark](https://github.com/MinishLab/semble/tree/24497845460960db1839c8485319df189a889225/benchmarks), at commit `2449784`: 1,251 questions over 63 open-source repositories in 19 languages, each pinned to a commit. The questions are sorted into architecture ("how are routes registered"), semantic ("session management") and symbol (`Blueprint`). semble's authors wrote the questions and relevant files with Claude Sonnet 4.6 and checked them with an LLM judge. We use the set as published.
+  - Our [large-repository set](https://github.com/SylphxAI/repomap/tree/main/bench/search): 60 plain-language questions over Django, Kubernetes, VS Code and rust-analyzer, at the commits of the speed benchmark below. We wrote the questions and answers before running any search, and checked every answer path against the pinned tree. Because we wrote this set, read it together with the public one.
+- **Scoring**, the same as semble's `run_benchmark.py`:
+  - Take the top 10 results of the MCP `search` tool.
+  - A target file counts as found at the rank of the first result in that file whose lines overlap the target's lines, if the target gives any.
+  - NDCG@10 is averaged per repository, then per language, then over the languages.
+- **Runs.** On one GitHub-hosted `ubuntu-latest` runner in the [`bench` workflow](https://github.com/SylphxAI/repomap/actions/workflows/bench.yml):
+  - this build;
+  - this build with `REPOMAP_EMBED=0` (keywords only);
+  - repomap 1.2.2, the previous release;
+  - semble itself, through its own harness, on the same repositories.
+- **Speed columns.**
+  - repomap's index time is `repomap index --no-cache` as a new process, which includes loading the model.
+  - repomap's query time is a round trip over MCP stdio.
+  - semble's numbers come from its harness: indexing in-process, and a Python function call per query.
+  - So the speed columns show the size of the costs. They are not a race.
+- **Tuning.** The ranking weights were tuned on 20 of the 63 repositories (one or two per language), then fixed. The table covers all 63.
+
+## Indexing speed
+
 Measured by [`scripts/bench.py`](https://github.com/SylphxAI/repomap/blob/main/scripts/bench.py) in the [`bench` workflow](https://github.com/SylphxAI/repomap/actions/workflows/bench.yml) on a standard GitHub-hosted `ubuntu-latest` runner. Anyone can re-run it.
 
 <!-- BENCH:START -->

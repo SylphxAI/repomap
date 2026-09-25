@@ -37,7 +37,7 @@ pub fn definitions(include_legacy: bool) -> Vec<Value> {
         json!({
             "name": "search",
             "title": "Search code",
-            "description": "Hybrid code search: symbol names plus BM25 over AST chunks (whole functions, methods, classes). Use natural words or identifiers, e.g. \"refresh token expiry\" or \"parseConfig\". Returns ranked file:line ranges with the matching lines.",
+            "description": "Hybrid code search over AST chunks (whole functions, methods, classes): symbol names, BM25 keywords and a local code embedding model, so identifiers and plain questions both work, e.g. \"parseConfig\", \"refresh token expiry\" or \"where are failed requests retried\". Returns ranked file:line ranges with the matching lines.",
             "inputSchema": {"type": "object", "required": ["query"], "properties": {
                 "query": {"type": "string"},
                 "limit": {"type": "integer", "description": "Max results (default 10)."},
@@ -121,7 +121,7 @@ pub fn definitions(include_legacy: bool) -> Vec<Value> {
 /// --markdown` renders the README table from these plus the registry above.
 pub const DOCS: &[(&str, &str, &str)] = &[
     ("map", "\"Give me the lay of the land\" / `focus: \"src/server\"`", "Modules, central files, key symbols, entry points; an outline with line numbers when focused"),
-    ("search", "`\"refresh token expiry\"`, `\"parseConfig\"`", "Ranked `file:line` ranges (functions, methods, classes) with the matching lines"),
+    ("search", "`\"where are failed requests retried\"`, `\"parseConfig\"`", "Ranked `file:line` ranges (functions, methods, classes) by keywords, names and meaning, with the matching lines"),
     ("context", "`SessionStore.refresh`, `src/auth/token.ts`, `token.ts:42`", "Code, callers (with call sites), callees, subtypes, members, imports, importers, tests"),
     ("trace", "`from: handleRequest, to: db.query`", "Shortest call path, or the call tree above/below a symbol"),
     ("impact", "`target: verifyToken` or `changed: true`", "Risk level, callers by depth, importing files, modules, tests to run"),

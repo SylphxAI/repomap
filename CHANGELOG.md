@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.3.0
+
+- **Semantic search.** `search` now also ranks code by meaning, with a local static code embedding model ([potion-code-16M-v2](https://huggingface.co/minishlab/potion-code-16M-v2), MIT, 256 dimensions). Plain questions such as "where are failed requests retried" find the right function even when it shares no word with the question.
+  - The model (33 MB) downloads once from Hugging Face on first use, with a message, and is checked by SHA-256. It is shared with other Sylphx tools in `~/.cache/sylphx/models`. After that everything runs offline, and no API is called.
+  - `repomap model` fetches it ahead of time. `REPOMAP_EMBED=0` keeps search keyword-only, and so does a machine with no network.
+  - The MCP server starts at once and picks the model up when the download finishes.
+  - The Docker images ship with the model.
+- **Better ranking for every query, with or without the model.** The ranking now combines names, keywords and meaning. On top of that:
+  - Files whose name or folder matches the question rank higher.
+  - Results spread across files.
+  - A file with several matching chunks is lifted.
+  - Tests, examples, docs and compatibility shims rank lower.
+  - __BENCH_LINE__
+- **One-click install.** Each GitHub release now carries MCP Bundles (`.mcpb`) for Claude Desktop and other MCPB hosts. There is one bundle for all platforms and one per platform. The bundle asks for a project folder.
+- **Kotlin:** a class body closed on the same line (`class P { val a = 1 }`) no longer drops a file's symbols. This works around an unmerged tree-sitter-kotlin fix.
+- **Fixes:**
+  - A library file named `test_*.bash` or `test_*.ts` is no longer treated as a test. Only `test_*.py`, `.rb`, `.c` and similar are.
+  - CI shows the queue-only job as `test other OS`, not `test (${{ matrix.os }})`.
+- **mcp-kit 0.2** from crates.io (`sylphx-mcp-kit`) instead of a git tag.
+
 ## 1.2.2
 
 - **MCP server** now runs on [mcp-kit](https://github.com/SylphxAI/mcp-kit), which uses rmcp, the official Rust MCP SDK, instead of repomap's own JSON-RPC loop. Tools, tool names and answers are unchanged. The server now also handles protocol negotiation across every spec version, cancellation, progress and pagination.

@@ -42,6 +42,7 @@ That's it. Add `--claude-hooks` to also [enrich Claude Code's Grep and Glob](#cl
 ```
 
 Claude Code: `claude mcp add repomap -- npx -y @sylphx/repomap mcp`
+Claude Desktop, one click: download `repomap-<version>.mcpb` from the [latest release](https://github.com/SylphxAI/repomap/releases/latest), open it, and pick your project folder.
 Claude Code plugin: `/plugin marketplace add SylphxAI/repomap`, then `/plugin install repomap@repomap`
 Codex (`~/.codex/config.toml`):
 
@@ -64,13 +65,13 @@ The server indexes the client's workspace root (or its working directory, or `RE
 
 Agents burn most of their context on `grep`, `ls` and reading whole files just to work out where things are. repomap gives them the map up front:
 
-- **Where is it?** Hybrid search that matches symbol names *and* the words inside functions, with the lines that matched.
+- **Where is it?** Hybrid search that matches symbol names, the words inside functions *and* what the code means, with the lines that matched. Ask "where are failed requests retried" or `parseConfig`.
 - **What is this?** One call returns a symbol's code, callers with call-site lines, callees, subtypes and the tests that reach it.
 - **How does A reach B?** The shortest call path, each hop cited `file:line`.
 - **What breaks if I change this?** Direct and indirect callers, importing files, modules touched, tests to run, and a risk level. Point it at your `git diff` before you commit.
 - **What does this repo look like?** Modules found from real dependencies (not just folders), the most central files, the most used symbols, and entry points.
 
-All of it comes from a local index: tree-sitter parsing, a resolved import and call graph, PageRank, Louvain communities and BM25 over AST chunks. Nothing leaves your machine, and no model or embedding API is called.
+All of it comes from a local index: tree-sitter parsing, a resolved import and call graph, PageRank, Louvain communities, BM25 over AST chunks, and a small static code embedding model (33 MB, downloaded once from Hugging Face, then offline). Nothing leaves your machine, and no API is called.
 
 ## What your agent gets
 
@@ -80,7 +81,7 @@ Six tools, each with an obvious job:
 | Tool | Ask it | Returns |
 |---|---|---|
 | `map` | "Give me the lay of the land" / `focus: "src/server"` | Modules, central files, key symbols, entry points; an outline with line numbers when focused |
-| `search` | `"refresh token expiry"`, `"parseConfig"` | Ranked `file:line` ranges (functions, methods, classes) with the matching lines |
+| `search` | `"where are failed requests retried"`, `"parseConfig"` | Ranked `file:line` ranges (functions, methods, classes) by keywords, names and meaning, with the matching lines |
 | `context` | `SessionStore.refresh`, `src/auth/token.ts`, `token.ts:42` | Code, callers (with call sites), callees, subtypes, members, imports, importers, tests |
 | `trace` | `from: handleRequest, to: db.query` | Shortest call path, or the call tree above/below a symbol |
 | `impact` | `target: verifyToken` or `changed: true` | Risk level, callers by depth, importing files, modules, tests to run |
@@ -230,12 +231,12 @@ Measured on a 4 vCPU GitHub-hosted runner ([method and full table](https://sylph
 | | **repomap** | GitNexus | Serena | claude-context | Aider repo map |
 |---|---|---|---|---|---|
 | Licence | **MIT** | PolyForm Noncommercial | MIT | MIT | Apache-2.0 (inside Aider) |
-| Setup | `npx … setup`, one binary | `npx`, Node | Python + language servers | Vector DB + embedding API key | Part of Aider |
-| API key / network | **None** | None for the graph | None | Required (embeddings) | None |
+| Setup | `npx … setup`, one binary, or a one-click `.mcpb` | `npx`, Node | Python + language servers | Vector DB + embedding API key | Part of Aider |
+| API key / network | **None** (model downloaded once) | None for the graph | None | Required (embeddings) | None |
 | Code graph (calls, imports, inheritance) | ✅ | ✅ | Via LSP references | — | Ranking only |
 | Change impact / blast radius | ✅ incl. `git diff` | ✅ | — | — | — |
 | Call path between two symbols | ✅ | ✅ | — | — | — |
-| Keyword + symbol search | ✅ BM25 + names | ✅ | ✅ symbols | Semantic (vectors) | — |
+| Search | ✅ names + BM25 + local embeddings | ✅ | ✅ symbols | Semantic (vectors) | — |
 | Interactive graph UI | ✅ local + static export | ✅ | — | — | — |
 | Claude Code Grep/Glob hook | ✅ opt-in | ✅ | — | — | — |
 | Database schema map linked to code | ✅ live (read-only) + migrations/ORMs | — | — | — | — |
@@ -244,7 +245,7 @@ Measured on a 4 vCPU GitHub-hosted runner ([method and full table](https://sylph
 | Edits code | — (read-only) | — | ✅ | — | ✅ |
 | Engine | Rust | TypeScript | Python | TypeScript | Python |
 
-Pick Serena if you want LSP-precise refactoring edits, and claude-context if you want embedding-based semantic search. repomap is for understanding and navigating a codebase with zero setup, and a licence you can use at work.
+Pick Serena if you want LSP-precise refactoring edits. repomap is for understanding and navigating a codebase with zero setup, including semantic search without a vector database or an API key, and a licence you can use at work. Search quality is measured on public benchmarks in [Benchmarks](https://sylphxai.github.io/repomap/benchmarks).
 
 ## CLI
 

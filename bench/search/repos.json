@@ -1,0 +1,6 @@
+[
+  {"name": "django", "language": "python", "url": "https://github.com/django/django.git", "revision": "75c4403f07b8ad25893f7832dbe8fc6814b53b2d"},
+  {"name": "kubernetes", "language": "go", "url": "https://github.com/kubernetes/kubernetes.git", "revision": "93248f9ae092f571eb870b7664c534bfc7d00f03"},
+  {"name": "vscode", "language": "typescript", "url": "https://github.com/microsoft/vscode.git", "revision": "f220831ea2d946c0dcb0f3eaa480eb435a2c1260"},
+  {"name": "rust-analyzer", "language": "rust", "url": "https://github.com/rust-lang/rust-analyzer.git", "revision": "aaddfb73fd95f2c0bf001b474dca91ae28bcce3a"}
+]

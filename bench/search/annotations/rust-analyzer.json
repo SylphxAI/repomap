@@ -1,0 +1,127 @@
+[
+ {
+  "query": "go to definition",
+  "relevant": [
+   "crates/ide/src/goto_definition.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "resolve which method a method call refers to",
+  "relevant": [
+   "crates/hir-ty/src/method_resolution.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "expand macro_rules macros",
+  "relevant": [
+   "crates/mbe/src/expander.rs"
+  ],
+  "secondary": [
+   "crates/mbe/src/expander/matcher.rs",
+   "crates/mbe/src/expander/transcriber.rs"
+  ],
+  "category": "semantic"
+ },
+ {
+  "query": "rename a symbol across files",
+  "relevant": [
+   "crates/ide/src/rename.rs"
+  ],
+  "secondary": [
+   "crates/ide-db/src/rename.rs"
+  ],
+  "category": "semantic"
+ },
+ {
+  "query": "inlay hints for parameter names",
+  "relevant": [
+   "crates/ide/src/inlay_hints/param_name.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "incremental reparsing after a text edit",
+  "relevant": [
+   "crates/syntax/src/parsing/reparsing.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "how does the language server main loop handle events",
+  "relevant": [
+   "crates/rust-analyzer/src/main_loop.rs"
+  ],
+  "secondary": [],
+  "category": "architecture"
+ },
+ {
+  "query": "load a cargo workspace from cargo metadata",
+  "relevant": [
+   "crates/project-model/src/cargo_workspace.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "run cargo check in the background and collect diagnostics",
+  "relevant": [
+   "crates/rust-analyzer/src/flycheck.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "find all references",
+  "relevant": [
+   "crates/ide/src/references.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "diagnostic for missing match arms",
+  "relevant": [
+   "crates/ide-diagnostics/src/handlers/missing_match_arms.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "semantic syntax highlighting",
+  "relevant": [
+   "crates/ide/src/syntax_highlighting.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "assist that extracts a function",
+  "relevant": [
+   "crates/ide-assists/src/handlers/extract_function.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "hover documentation",
+  "relevant": [
+   "crates/ide/src/hover.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "complete fields and methods after a dot",
+  "relevant": [
+   "crates/ide-completion/src/completions/dot.rs"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ }
+]

@@ -1,0 +1,13 @@
+{
+  "author": { "name": "Sylphx", "url": "https://github.com/SylphxAI" },
+  "long_description": "repomap maps your codebase for your AI agent: modules, central files, a call graph, hybrid search (keywords plus a local code embedding model), call paths and change impact, each answer cited file:line. It runs locally and needs no API key.",
+  "server": { "mcp_config": { "env": { "REPOMAP_ROOT": "${user_config.project}" } } },
+  "user_config": {
+    "project": {
+      "type": "directory",
+      "title": "Project folder",
+      "description": "The repository repomap maps by default. The agent can pass another folder in each call.",
+      "required": true
+    }
+  }
+}

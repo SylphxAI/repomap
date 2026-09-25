@@ -1,12 +1,13 @@
 name: bench
 
-# Indexing and query benchmarks on large public repositories, on a
-# GitHub-hosted runner. Results land in the job summary and an artifact.
+# Indexing and query benchmarks on large public repositories, and search
+# quality on public question sets, on GitHub-hosted runners. Results land in
+# the job summaries and artifacts; docs/benchmarks.md quotes them.
 
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['scripts/bench.py', '.github/workflows/bench.yml']
+    paths: ['scripts/bench.py', 'scripts/bench_search.py', 'bench/**', '.github/workflows/bench.yml']
   release:
     types: [published]
 
@@ -34,9 +35,83 @@ jobs:
           clone kubernetes/kubernetes v1.34.1 & pids+=($!)
           for p in "${pids[@]}"; do wait "$p"; done
           du -sh /tmp/corpus/*
-      - name: Run
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/sylphx/models
+          key: models-potion-code-16M-v2
+      - run: target/release/repomap model
+      - name: Run (keywords and embeddings)
         run: python3 scripts/bench.py target/release/repomap /tmp/corpus bench.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Run (keywords only)
+        env:
+          REPOMAP_EMBED: '0'
+        run: python3 scripts/bench.py target/release/repomap /tmp/corpus bench-keywords.json | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: bench
-          path: bench.json
+          path: bench*.json
+
+  # Search quality: semble's public benchmark (63 repositories, 19 languages,
+  # 1,251 questions) and our own large-repository questions, for this build,
+  # this build without embeddings, and the previous release; plus semble itself
+  # on the same runner and repositories.
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      SEMBLE_SHA: 24497845460960db1839c8485319df189a889225
+      BEFORE: 1.2.2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+      - run: cargo build --release --locked -p repomap
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/sylphx/models
+          key: models-potion-code-16M-v2
+      - run: target/release/repomap model
+      - name: Question sets and the previous release
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/MinishLab/semble /tmp/semble
+          git -C /tmp/semble checkout -q "$SEMBLE_SHA"
+          mkdir -p /tmp/before
+          curl -fsSL "https://github.com/SylphxAI/repomap/releases/download/v$BEFORE/repomap-linux-x64-gnu.tar.gz" | tar xz -C /tmp/before
+          /tmp/before/repomap version
+      - name: semble benchmark
+        run: |
+          set -euo pipefail
+          C=~/.cache/semble-bench
+          python3 scripts/bench_search.py target/release/repomap /tmp/semble/benchmarks $C out/semble-hybrid.json
+          REPOMAP_EMBED=0 python3 scripts/bench_search.py target/release/repomap /tmp/semble/benchmarks $C out/semble-keywords.json
+          python3 scripts/bench_search.py /tmp/before/repomap /tmp/semble/benchmarks $C out/semble-before.json
+      - name: Large-repository questions
+        run: |
+          set -euo pipefail
+          C=/tmp/large
+          python3 scripts/bench_search.py target/release/repomap bench/search $C out/large-hybrid.json
+          REPOMAP_EMBED=0 python3 scripts/bench_search.py target/release/repomap bench/search $C out/large-keywords.json
+          python3 scripts/bench_search.py /tmp/before/repomap bench/search $C out/large-before.json
+      - name: semble on the same runner
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          pip install -q uv
+          cd /tmp/semble
+          uv sync -q
+          # Our large-repository questions, in semble's layout.
+          cp "$GITHUB_WORKSPACE"/bench/search/annotations/*.json benchmarks/annotations/
+          jq -s '.[0] + .[1]' benchmarks/repos.json "$GITHUB_WORKSPACE/bench/search/repos.json" > /tmp/repos.json && cp /tmp/repos.json benchmarks/repos.json
+          for r in django kubernetes vscode rust-analyzer; do ln -sfn /tmp/large/$r ~/.cache/semble-bench/$r; done
+          uv run python -m benchmarks.run_benchmark 2> /tmp/semble.log || { tail -50 /tmp/semble.log; exit 1; }
+          tail -60 /tmp/semble.log
+          cp benchmarks/results/semble-hybrid-*.json "$GITHUB_WORKSPACE/out/semble-self.json"
+      - name: Summary
+        if: always()
+        run: python3 scripts/bench_search.py --summary out >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: search
+          path: out/

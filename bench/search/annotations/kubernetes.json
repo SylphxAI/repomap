@@ -1,0 +1,124 @@
+[
+ {
+  "query": "scheduler filter: does the node have enough CPU and memory for the pod",
+  "relevant": [
+   "pkg/scheduler/framework/plugins/noderesources/fit.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "garbage collector deletes dependents through owner references",
+  "relevant": [
+   "pkg/controller/garbagecollector/garbagecollector.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "kubelet evicts pods when the node is under memory pressure",
+  "relevant": [
+   "pkg/kubelet/eviction/eviction_manager.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "deployment rolling update scales old and new replica sets",
+  "relevant": [
+   "pkg/controller/deployment/rolling.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "horizontal pod autoscaler computes the desired replica count",
+  "relevant": [
+   "pkg/controller/podautoscaler/replica_calculator.go"
+  ],
+  "secondary": [
+   "pkg/controller/podautoscaler/horizontal.go"
+  ],
+  "category": "semantic"
+ },
+ {
+  "query": "RBAC authorizer checks role bindings",
+  "relevant": [
+   "plugin/pkg/auth/authorizer/rbac/rbac.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "kube-proxy iptables rules for services",
+  "relevant": [
+   "pkg/proxy/iptables/proxier.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "admission that enforces resource quota",
+  "relevant": [
+   "staging/src/k8s.io/apiserver/pkg/admission/plugin/resourcequota/admission.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "leader election with leases",
+  "relevant": [
+   "staging/src/k8s.io/client-go/tools/leaderelection/leaderelection.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "evict pods from nodes with NoExecute taints",
+  "relevant": [
+   "pkg/controller/tainteviction/taint_eviction.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "image garbage collection when disk usage is high",
+  "relevant": [
+   "pkg/kubelet/images/image_gc_manager.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "cron job controller creates jobs on schedule",
+  "relevant": [
+   "pkg/controller/cronjob/cronjob_controllerv2.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "how does the shared informer deliver watch events to handlers",
+  "relevant": [
+   "staging/src/k8s.io/client-go/tools/cache/shared_informer.go"
+  ],
+  "secondary": [],
+  "category": "architecture"
+ },
+ {
+  "query": "controller that maintains endpoint slices for services",
+  "relevant": [
+   "pkg/controller/endpointslice/endpointslice_controller.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "scheduling one pod: filter, score and bind",
+  "relevant": [
+   "pkg/scheduler/schedule_one.go"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ }
+]

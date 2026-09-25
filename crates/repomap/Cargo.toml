@@ -16,7 +16,7 @@ anyhow = "1"
 repomap-core = { path = "../repomap-core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sylphx-mcp-kit = { git = "https://github.com/SylphxAI/mcp-kit", tag = "v0.1.0" }
+sylphx-mcp-kit = "0.2"
 tiny_http = "0.12"
 dirs = "6"
 tokio = { version = "1", default-features = false, features = ["rt", "time"] }

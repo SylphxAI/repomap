@@ -1,0 +1,124 @@
+[
+ {
+  "query": "CSRF token validation middleware",
+  "relevant": [
+   "django/middleware/csrf.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "password hashing algorithms",
+  "relevant": [
+   "django/contrib/auth/hashers.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "how are URL patterns resolved to views",
+  "relevant": [
+   "django/urls/resolvers.py"
+  ],
+  "secondary": [],
+  "category": "architecture"
+ },
+ {
+  "query": "detect model changes to generate migrations",
+  "relevant": [
+   "django/db/migrations/autodetector.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "template variable lookup and filter application",
+  "relevant": [
+   "django/template/base.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "sessions stored in the database",
+  "relevant": [
+   "django/contrib/sessions/backends/db.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "lazy queryset evaluation and filtering",
+  "relevant": [
+   "django/db/models/query.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "form field validation and cleaning",
+  "relevant": [
+   "django/forms/fields.py"
+  ],
+  "secondary": [
+   "django/forms/forms.py"
+  ],
+  "category": "semantic"
+ },
+ {
+  "query": "send email over SMTP",
+  "relevant": [
+   "django/core/mail/backends/smtp.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "cryptographic signing of values",
+  "relevant": [
+   "django/core/signing.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "split a list of objects into pages",
+  "relevant": [
+   "django/core/paginator.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "how does the admin site register models",
+  "relevant": [
+   "django/contrib/admin/sites.py"
+  ],
+  "secondary": [],
+  "category": "architecture"
+ },
+ {
+  "query": "cache backend for memcached",
+  "relevant": [
+   "django/core/cache/backends/memcached.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "convert between naive and aware datetimes",
+  "relevant": [
+   "django/utils/timezone.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "command that runs the development server",
+  "relevant": [
+   "django/core/management/commands/runserver.py"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ }
+]

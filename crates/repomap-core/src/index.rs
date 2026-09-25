@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Instant, UNIX_EPOCH};
 
-const CACHE_VERSION: u32 = 6;
+const CACHE_VERSION: u32 = 7;
 const MAX_FILE_BYTES: u64 = 1_000_000;
 
 /// Directories skipped even when they are not git-ignored.
@@ -177,10 +177,14 @@ pub struct Index {
     /// Lowercased symbol names, parallel to `symbols` (search hot path).
     pub names_lower: Vec<String>,
     pub bm25: Bm25,
+    /// Chunk embeddings, parallel to `bm25.chunks` (empty without the model).
+    pub dense: crate::semantic::Dense,
     pub stats: Stats,
     pub git: GitInfo,
     /// Hash of (path, mtime, size) for every candidate file at build time.
     pub fingerprint: u64,
+    /// The embedding model the index was built with ("" for none).
+    pub model_id: &'static str,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -193,6 +197,8 @@ pub struct GitInfo {
 #[derive(Serialize, Deserialize)]
 struct CacheFile {
     version: u32,
+    /// Embedding model the chunk vectors came from ("" for none).
+    embed: String,
     entries: HashMap<String, CacheEntry>,
 }
 
@@ -231,7 +237,8 @@ pub fn is_test_path(path: &str) -> bool {
     let p = path.to_ascii_lowercase();
     let name = p.rsplit('/').next().unwrap_or(&p);
     p.split('/').any(|s| matches!(s, "test" | "tests" | "__tests__" | "spec" | "specs" | "testdata" | "e2e"))
-        || name.starts_with("test_")
+        // `test_x.py`, but not a library such as `lib/test_functions.bash`.
+        || (name.starts_with("test_") && matches!(name.rsplit('.').next(), Some("py" | "rb" | "c" | "cc" | "cpp" | "lua" | "dart" | "php")))
         || name.contains(".test.")
         || name.contains(".spec.")
         || name.contains("_test.")
@@ -352,7 +359,14 @@ impl Index {
         let root = root
             .canonicalize()
             .with_context(|| format!("cannot open {}", root.display()))?;
+        // Load the embedding model while the walk runs.
+        let loading = std::thread::spawn(|| {
+            crate::semantic::model();
+        });
         let candidates = walk(&root)?;
+        let _ = loading.join();
+        // Fixed for this build, even if a background download finishes meanwhile.
+        let model_id = crate::semantic::model_id();
         let walk_ms = t0.elapsed().as_millis();
         let fp = fingerprint_of(&candidates);
 
@@ -361,7 +375,7 @@ impl Index {
             std::fs::read(&cache_path)
                 .ok()
                 .and_then(|b| postcard::from_bytes::<CacheFile>(&b).ok())
-                .filter(|c| c.version == CACHE_VERSION)
+                .filter(|c| c.version == CACHE_VERSION && c.embed == model_id)
                 .map(|c| c.entries)
                 .unwrap_or_default()
         } else {
@@ -414,6 +428,7 @@ impl Index {
 
         let t2 = Instant::now();
         let mut index = assemble(root.clone(), &kept);
+        index.model_id = model_id;
         stats.graph_ms = t2.elapsed().as_millis();
 
         if opts.use_cache && dirty {
@@ -421,7 +436,7 @@ impl Index {
                 .into_iter()
                 .map(|(c, e)| (c.path.clone(), e))
                 .collect();
-            let file = CacheFile { version: CACHE_VERSION, entries };
+            let file = CacheFile { version: CACHE_VERSION, embed: model_id.to_string(), entries };
             if let Ok(bytes) = postcard::to_stdvec(&file) {
                 let _ = std::fs::create_dir_all(cache_path.parent().unwrap());
                 let tmp = cache_path.with_extension("tmp");
@@ -506,6 +521,15 @@ fn assemble(root: PathBuf, kept: &[(&Candidate, CacheEntry)]) -> Index {
     let names_lower: Vec<String> = symbols.iter().map(|s| s.name.to_ascii_lowercase()).collect();
     let tb = Instant::now();
     let bm25 = Bm25::build(kept.iter().enumerate().map(|(i, (_, e))| (i as u32, &files[i], &e.facts)));
+    let mut dense = crate::semantic::Dense::default();
+    if let Some(m) = crate::semantic::model().filter(|_| kept.iter().any(|(_, e)| e.facts.chunks.iter().any(|c| c.vec.is_some()))) {
+        dense = crate::semantic::Dense::new(m.dims());
+        for (_, e) in kept {
+            for c in &e.facts.chunks {
+                dense.push(c.vec.as_ref());
+            }
+        }
+    }
     if std::env::var_os("REPOMAP_TRACE").is_some() {
         eprintln!("[repomap] bm25: {} ms", tb.elapsed().as_millis());
     }
@@ -528,9 +552,11 @@ fn assemble(root: PathBuf, kept: &[(&Candidate, CacheEntry)]) -> Index {
         by_name,
         names_lower,
         bm25,
+        dense,
         stats: Stats::default(),
         git: GitInfo::default(),
         fingerprint: 0,
+        model_id: "",
     };
     let facts: Vec<&FileFacts> = kept.iter().map(|(_, e)| &e.facts).collect();
     graph::link(&mut index, &facts);
@@ -582,6 +608,7 @@ mod tests {
         assert!(is_test_path("pkg/foo_test.go"));
         assert!(is_test_path("a/b.spec.ts"));
         assert!(!is_test_path("src/testing_utils.ts"));
+        assert!(is_test_path("tests_x/test_app.py") && !is_test_path("lib/bats-core/test_functions.bash"));
         assert_eq!(role_of("examples/tutorial/flaskr/db.py", false), Role::Example);
         assert_eq!(role_of("src/flask/app.py", false), Role::Core);
         assert_eq!(role_of("benchmarks/jsx/a.ts", false), Role::Bench);

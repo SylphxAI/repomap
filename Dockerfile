@@ -11,7 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
     && rm -rf /var/lib/apt/lists/* \
     && git config --system --add safe.directory '*'
 COPY --from=build /repomap /usr/local/bin/repomap
-ENV REPOMAP_CACHE_DIR=/tmp/repomap-cache
+ENV REPOMAP_CACHE_DIR=/tmp/repomap-cache SYLPHX_MODEL_DIR=/opt/repomap/models
+# The embedding model ships in the image, so the server needs no network.
+RUN repomap model
 WORKDIR /workspace
 LABEL org.opencontainers.image.source="https://github.com/SylphxAI/repomap" \
       org.opencontainers.image.description="A map of your codebase for AI agents: code graph, search, call paths and change impact (MCP stdio server)." \
