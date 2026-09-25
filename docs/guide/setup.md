@@ -18,6 +18,14 @@
 
 On Windows the command is `cmd /c npx …`.
 
+## Docker
+
+```bash
+docker run -i --rm -v "$PWD:/workspace:ro" ghcr.io/sylphxai/repomap
+```
+
+The image runs the stdio MCP server against `/workspace` and is published for linux/amd64 and linux/arm64 on every release.
+
 ## Claude Code hook (optional)
 
 `setup --claude-hooks` also installs a PreToolUse hook. Whenever Claude Code runs `Grep` or `Glob`, the hook adds where the symbol is defined and who calls it. See [Claude Code hook](/guide/claude-code-hook).

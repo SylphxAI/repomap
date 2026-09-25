@@ -1,6 +1,6 @@
 {
   "name": "repomap-workspace",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
   "type": "module",
   "description": "repomap monorepo: Rust engine (crates/), npm packages (packages/), graph UI (ui/), docs (docs/).",

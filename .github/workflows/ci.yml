@@ -79,3 +79,28 @@ jobs:
           REPOMAP_BIN=$PWD/$B node packages/repomap/bin/repomap.js version
       - name: Docs build
         run: bun run docs:build
+
+  docker:
+    name: docker image (source build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: repomap:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: MCP over stdio from the container
+        run: |
+          set -euo pipefail
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"impact","arguments":{"target":"decode"}}}' \
+            | (cat; sleep 4) | docker run -i --rm -v "$PWD/crates/repomap-core/tests/fixture:/workspace:ro" repomap:ci | tee /tmp/out.jsonl
+          grep -q '"name":"impact"' /tmp/out.jsonl
+          grep -q 'verifyToken' /tmp/out.jsonl

@@ -49,6 +49,12 @@ command = "npx"
 args = ["-y", "@sylphx/repomap", "mcp"]
 ```
 
+Docker (stdio, amd64/arm64):
+
+```json
+{ "mcpServers": { "repomap": { "command": "docker", "args": ["run", "-i", "--rm", "-v", "/path/to/repo:/workspace:ro", "ghcr.io/sylphxai/repomap"] } } }
+```
+
 The server indexes the client's workspace root (or its working directory, or `REPOMAP_ROOT`). Every tool also takes `root`.
 </details>
 

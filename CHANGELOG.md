@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.2
+
+- **Docker image** `ghcr.io/sylphxai/repomap` (linux/amd64, linux/arm64), published on every release. It runs the stdio MCP server; mount the repo at `/workspace`.
+- The MCP server skips client roots that do not exist locally (container clients see host paths), falling back to the working directory.
+- The release workflow marks the old MCP Registry names `io.github.SylphxAI/spine` and `io.github.SylphxAI/locus` as deprecated, pointing at repomap.
+
 ## 1.1.1
 
 - `setup --claude-hooks` run through `npx` no longer writes `repomap hook` (a temporary npx shim) into Claude Code settings. It writes `npx -y @sylphx/repomap hook` unless repomap is installed globally.

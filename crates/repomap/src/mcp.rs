@@ -153,7 +153,8 @@ fn pick_root(explicit: Option<PathBuf>, default_root: Option<&PathBuf>, roots: &
     // Wait briefly for the client's roots answer.
     let guard = roots.list.lock().unwrap();
     let (guard, _) = roots.ready.wait_timeout_while(guard, Duration::from_secs(3), |l| l.is_none()).unwrap();
-    if let Some(first) = guard.as_ref().and_then(|l| l.first()) {
+    // Client roots are host paths; inside a container they may not exist.
+    if let Some(first) = guard.as_ref().and_then(|l| l.iter().find(|p| p.is_dir())) {
         return check(first.clone());
     }
     drop(guard);
