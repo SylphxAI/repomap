@@ -26,7 +26,7 @@ jobs:
       docker: ${{ steps.f.outputs.docker }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
         id: f
         with:
           filters: |
@@ -48,8 +48,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       # One release build: the tests reuse its dependency artifacts and the
       # binary is shared with every later job.
       - run: cargo test --release --locked --workspace
@@ -66,7 +66,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: '1.4.0'
       - uses: actions/download-artifact@v4
@@ -194,10 +194,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       # The source Dockerfile is what Docker's MCP catalog builds, so it is
       # built here; the release image reuses the release binaries instead.
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           load: true
@@ -224,7 +224,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: SylphxAI/.github/.github/actions/plain-language@64598b859231c51f32d0be39630f36893d84f204
+      - uses: SylphxAI/.github/.github/actions/plain-language@8eb02f8a9bd9c16c666829c5b1d315406df4dcdf
 
   # Queue-only: the platforms a pull request does not need to wait for.
   other-os:
@@ -238,8 +238,8 @@ jobs:
         os: [macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - run: cargo test --locked --workspace
 
   ci:
