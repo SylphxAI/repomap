@@ -221,9 +221,21 @@ fn edit_codex(path: &Path, cmd: &str, args: &[String], dry: bool, remove: bool) 
     Ok(Change::Wrote(if remove { "removed from" } else { "wrote" }))
 }
 
+/// A `repomap` on PATH that outlives this command. Under `npx` the PATH holds
+/// a temporary shim in the npx cache, which must not be written into settings.
+fn installed_repomap() -> bool {
+    let exts: Vec<&str> = if cfg!(windows) { vec![".exe", ".cmd", ".bat", ""] } else { vec![""] };
+    std::env::var_os("PATH").map_or(false, |p| {
+        std::env::split_paths(&p).any(|d| {
+            let s = d.to_string_lossy();
+            !s.contains("_npx") && !s.contains("npm-cache") && !s.contains("/.npm/") && exts.iter().any(|e| d.join(format!("repomap{e}")).is_file())
+        })
+    })
+}
+
 /// Native `repomap` on PATH starts in milliseconds; otherwise go through npx.
 fn hook_command() -> String {
-    if on_path("repomap") {
+    if installed_repomap() {
         "repomap hook".into()
     } else {
         "npx -y @sylphx/repomap hook".into()
