@@ -164,30 +164,47 @@ jobs:
           curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
           ./mcp-publisher validate
           ./mcp-publisher login github-oidc
-          ./mcp-publisher publish
+          if curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.SylphxAI%2Frepomap/versions/$V" >/dev/null 2>&1; then
+            echo "io.github.SylphxAI/repomap $V already in the registry"
+          else
+            ./mcp-publisher publish
+          fi
 
+  registry-retired:
+    # Runs on every release run (not only new versions), so it converges even
+    # after a transient registry error. Idempotent.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
       - name: Deprecate retired MCP Registry names (spine, locus)
         run: |
           set -euo pipefail
+          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher login github-oidc
           # The npm packages @sylphx/spine and @sylphx/locus stay live as thin
           # aliases of repomap; only their registry listings retire.
-          # --yes skips the bulk-operation prompt (no stdin in CI). A re-run on an
-          # already-deprecated name answers "No changes to apply": success here.
           for retired in io.github.SylphxAI/spine io.github.SylphxAI/locus; do
-            if ! out=$(./mcp-publisher status --status deprecated --all-versions --yes \
-                --message 'Merged into repomap. Use io.github.SylphxAI/repomap (npm @sylphx/repomap).' \
-                "$retired" 2>&1); then
-              if grep -qE 'already set to the provided values|No changes to apply' <<<"$out"; then
-                echo "$retired already deprecated"
-              else
-                echo "$out" >&2; exit 1
-              fi
-            fi
             enc=$(node -p "encodeURIComponent(process.argv[1])" "$retired")
+            url="https://registry.modelcontextprotocol.io/v0.1/servers/$enc/versions/latest"
+            if curl -fsS "$url" | jq -e '._meta["io.modelcontextprotocol.registry/official"].status == "deprecated"' >/dev/null; then
+              echo "$retired already deprecated"; continue
+            fi
+            done_ok=false
+            for attempt in 1 2 3 4 5; do
+              # --yes skips the bulk-operation prompt (no stdin in CI).
+              if out=$(./mcp-publisher status --status deprecated --all-versions --yes \
+                  --message 'Merged into repomap. Use io.github.SylphxAI/repomap (npm @sylphx/repomap).' \
+                  "$retired" 2>&1) || grep -qE 'already set to the provided values|No changes to apply' <<<"$out"; then
+                done_ok=true; break
+              fi
+              echo "attempt $attempt: $out"; sleep $((attempt * 15))
+            done
+            [ "$done_ok" = true ] || { echo "::error::could not deprecate $retired"; exit 1; }
             ok=false
             for i in $(seq 1 24); do
-              if curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/$enc/versions/latest" > /tmp/retired.json && \
-                 jq -e '._meta["io.modelcontextprotocol.registry/official"].status == "deprecated"' /tmp/retired.json >/dev/null; then
+              if curl -fsS "$url" | jq -e '._meta["io.modelcontextprotocol.registry/official"].status == "deprecated"' >/dev/null; then
                 echo "readback: $retired deprecated"; ok=true; break
               fi
               sleep 5
