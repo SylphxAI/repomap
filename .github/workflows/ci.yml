@@ -67,6 +67,12 @@ jobs:
             | (cat; sleep 3) | $B mcp > /tmp/mcp.out
           grep -q '"name":"impact"' /tmp/mcp.out
           grep -q 'pagerank' /tmp/mcp.out
+          # Legacy Locus/Spine launch: flags first, old tool names.
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"codebase_search","arguments":{"query":"verifyToken"}}}' \
+            | (cat; sleep 3) | $B --root=crates/repomap-core/tests/fixture > /tmp/legacy.out
+          grep -q 'verifyToken' /tmp/legacy.out
           REPOMAP_BIN=$PWD/$B node packages/repomap/bin/repomap.js version
       - name: Docs build
         run: bun run docs:build

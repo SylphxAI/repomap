@@ -126,12 +126,18 @@ jobs:
             name=$(node -p "require('./$dir/package.json').name")
             if npm view "$name@$V" version >/dev/null 2>&1; then echo "= $name@$V already live"; return; fi
             (cd "$dir" && npm publish --access public)
-            for i in $(seq 1 60); do npm view "$name@$V" version >/dev/null 2>&1 && { echo "+ $name@$V"; return; }; sleep 5; done
-            echo "::error::$name@$V not visible after publish"; exit 1
+            echo "+ $name@$V published"
           }
           for key in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu win32-x64-msvc; do pub packages/npm/$key; done
           pub packages/repomap
           for a in spine locus coderag; do pub packages/aliases/$a; done
+          # The registry can take minutes to serve new versions; wait once for all.
+          for dir in packages/npm/* packages/repomap packages/aliases/*; do
+            name=$(node -p "require('./$dir/package.json').name")
+            for i in $(seq 1 120); do npm view "$name@$V" version >/dev/null 2>&1 && break; sleep 5; done
+            npm view "$name@$V" version >/dev/null 2>&1 || { echo "::error::$name@$V not visible after 10 minutes"; exit 1; }
+            echo "readback $name@$V"
+          done
       - name: Smoke the published package
         run: |
           set -euo pipefail

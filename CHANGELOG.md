@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1
+
+- Old launch commands keep working: `npx @sylphx/locus --root=/repo` (flags with no subcommand) starts the MCP server, and `LOCUS_ROOT`/`CODERAG_ROOT` are honoured.
+- `map --limit` now also caps modules and entry points.
+- `setup --dry-run` says what *would* change.
+- Graph UI: impact view labels only the selected file and the central direct dependents.
+- Release: publish every package first, then wait once for the npm registry, so a slow registry does not fail the run.
+
 ## 1.0.0
 
 repomap is Spine and Locus, merged and rebuilt.

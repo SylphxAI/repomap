@@ -94,6 +94,7 @@ pub fn run(flags: &HashMap<String, String>) -> Result<()> {
             Ok(Change::Unchanged) => println!("  = {:<17} already configured ({})", c.label, c.config.display()),
             Ok(Change::Wrote(what)) => {
                 touched += 1;
+                let what = if dry { format!("would be {}", what.replace("wrote", "written to")) } else { what.to_string() };
                 println!("  + {:<17} {} {}", c.label, what, c.config.display());
             }
             Err(e) => println!("  ! {:<17} {e}", c.label),

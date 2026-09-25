@@ -277,7 +277,7 @@ impl Index {
                 depends_on: deps.iter().take(4).map(|(c, _)| self.communities[*c as usize].name.clone()).collect(),
             });
         }
-        modules.truncate(limit.max(12));
+        modules.truncate(limit);
 
         let entry_points: Vec<String> = code
             .iter()
@@ -290,7 +290,7 @@ impl Index {
                     && matches!(stem, "main" | "index" | "cli" | "app" | "server" | "lib" | "__main__" | "manage" | "program" | "Program")
                     && parent_dir(p).split('/').count() <= 3
             })
-            .take(12)
+            .take(limit.min(8))
             .map(|f| self.files[f as usize].path.clone())
             .collect();
 

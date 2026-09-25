@@ -103,6 +103,11 @@ fn run() -> Result<()> {
         }
         return mcp::serve(None);
     }
+    // Legacy launches (`npx @sylphx/locus --root=/repo`) start with a flag:
+    // treat them as the MCP server.
+    if raw[0].starts_with('-') && !matches!(raw[0].as_str(), "-h" | "--help" | "-V" | "--version") {
+        raw.insert(0, "mcp".into());
+    }
     let cmd = raw.remove(0);
     let args = Args::parse(raw);
     match cmd.as_str() {
