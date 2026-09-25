@@ -1,68 +1,33 @@
-# Architecture Reader MCP
+# repomap
 
-Architecture Reader MCP is a SylphxAI MCP repository for agent-native repository
-architecture understanding. It builds and serves a queryable architecture
-evidence graph so AI agents can ask how a project is structured, where
-boundaries live, how components depend on each other, and what files prove each
-answer.
+A map of your codebase for AI agents and people: a code graph, hybrid search,
+call paths and change impact, with an interactive graph UI. It ships as a Rust
+MCP server and CLI, runs locally, needs no API key, and is MIT licensed.
 
-Project identity is split by boundary: vendor-neutral project facts live in
-, while Sylphx-specific
-governance facts live in .
+- Lifecycle: `active`, published as `@sylphx/repomap` (npm) and
+  `io.github.SylphxAI/repomap` (MCP Registry)
+- Docs: https://sylphxai.github.io/repomap/
+- Formerly Spine (`@sylphx/spine`) and Locus (`@sylphx/locus`,
+  `@sylphx/coderag`). Those packages are now thin aliases.
 
-## Lifecycle And Layer
+## Layout
 
-- Lifecycle: `draft`
-- Layer: `application`
-- Delivery state: local scaffold and design documents only
+- `crates/repomap-core`: walk, tree-sitter extraction, import and call
+  resolution, PageRank, Louvain, BM25, and the queries (map, search, context,
+  trace, impact)
+- `crates/repomap`: the `repomap` binary (CLI, MCP stdio server, `serve` HTTP
+  UI, `export`, `setup`)
+- `ui/`: graph UI source (TypeScript, Sigma.js). `bun run build:ui` writes
+  `crates/repomap/assets/`, which is committed so cargo builds need no JS
+  toolchain
+- `packages/repomap`: the npm launcher; `packages/npm/*`: the native binaries;
+  `packages/aliases/*`: the spine, locus and coderag aliases
+- `docs/`: the VitePress site; `scripts/`: version sync and the benchmark
 
-## Goals
+## Release
 
-- Provide an MCP server for architecture overview, architecture search,
-  evidence lookup, dependency tracing, and impact analysis.
-- Build an architecture evidence graph from deterministic sources first:
-  manifests, package/workspace metadata, AST/symbol extraction, import graphs,
-  routes, schemas, workflows, docs, and ADRs.
-- Integrate with Sylphx parser/search assets through public package surfaces:
-  Synth for universal AST parsing and CodeRAG for generic code retrieval where
-  useful.
-- Return agent-readable answers with file paths, line ranges, evidence IDs,
-  extraction source, freshness, confidence, and known uncertainty.
-
-## Non-Goals
-
-- This repository is not a replacement for CodeRAG generic code search.
-- This repository is not a fork of Synth or `SylphxAI/ast`.
-- This repository is not a visualization-first dashboard product.
-- This repository does not own Reader portfolio media extraction behavior.
-- This repository does not own Sylphx doctrine, shared CI, or deployment
-  infrastructure.
-
-## Boundary Summary
-
-The project owns the architecture evidence graph schema, architecture indexing
-pipeline, query planner, MCP tool surface, and architecture answer contracts.
-Parser packages, generic code search, dashboard UX, model providers, and
-external platform runtime are consumed through stable public interfaces and
-remain owned by their source repositories.
-
-## Public Surfaces
-
-- README: [`README.md`](./README.md)
-- Architecture overview: [`docs/architecture.md`](./docs/architecture.md)
-- Specifications: [`docs/specs/`](./docs/specs/)
-- Portfolio plan: [`docs/portfolio/`](./docs/portfolio/)
-- SOTA family roadmap: [`docs/roadmap/sota-family-roadmap.md`](./docs/roadmap/sota-family-roadmap.md)
-- Security boundary: [`SECURITY.md`](./SECURITY.md)
-- MCP server metadata: [`server.json`](./server.json)
-- Rust workspace: [`crates/`](./crates/)
-- Rust MCP server crate: [`crates/architecture-reader-mcp/`](./crates/architecture-reader-mcp/)
-- Baseline CI workflow: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)
-
-## Delivery Proof
-
-This scaffold has a baseline CI workflow but no release workflow, package
-publication, or production deployment yet. Current proof is limited to local
-validation, remote repository readback, and future CI runs on GitHub. Shipped
-proof must later include protected-branch CI, merge policy, package release, MCP
-install/readback, and integration tests against representative repositories.
+Bump the version with `bun scripts/set-version.ts X.Y.Z && cargo update -w`,
+then merge. `release.yml` publishes when the npm version is new: it builds 5
+native targets on GitHub-hosted runners, publishes the natives, the main
+package and the aliases, smoke-tests with `npx`, creates the GitHub release,
+and publishes to the MCP Registry.

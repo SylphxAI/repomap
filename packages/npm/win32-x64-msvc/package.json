@@ -1,0 +1,24 @@
+{
+  "name": "@sylphx/repomap-win32-x64-msvc",
+  "version": "1.0.0",
+  "description": "repomap native binary for win32-x64-msvc",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "repomap.exe"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://sylphxai.github.io/repomap/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SylphxAI/repomap.git",
+    "directory": "packages/npm/win32-x64-msvc"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@sylphx/spine",
+  "version": "1.0.0",
+  "description": "Spine is now repomap. This package is a thin alias of @sylphx/repomap (same MCP server and CLI).",
+  "bin": {
+    "spine": "bin/spine.js"
+  },
+  "files": [
+    "bin/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@sylphx/repomap": "1.0.0"
+  },
+  "keywords": [
+    "repomap",
+    "mcp",
+    "code-search",
+    "code-graph",
+    "spine"
+  ],
+  "license": "MIT",
+  "homepage": "https://sylphxai.github.io/repomap/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SylphxAI/repomap.git",
+    "directory": "packages/aliases/spine"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

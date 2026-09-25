@@ -1,9 +1,13 @@
 target/
-**/.architecture-reader/
 node_modules/
 dist/
 .DS_Store
 .env
 .env.*
 !.env.example
-bin/native/
+packages/npm/*/repomap
+packages/npm/*/repomap.exe
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+repomap.html
+repomap.json

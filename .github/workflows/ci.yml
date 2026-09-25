@@ -1,69 +1,72 @@
 name: ci
 
-# Fast Trunk (Agent-native):
-# - Aggregate source verdict: source-ci/pass
-# - CI = source correctness only; Platform builds production once
-# - Merge Queue off by default (no merge_group trigger)
-# - Concurrency cancels superseded PR/branch tip runs
-
 on:
-  merge_group:
-  workflow_dispatch:
   pull_request:
+  merge_group:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  # Fast Trunk: supersede obsolete runs for the same PR or branch tip.
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.event.merge_group.head_sha || github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.event.merge_group.head_sha || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: validate release gate
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --locked
+
+  checks:
+    name: ui, manifests, smoke
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Enforce owned CI runner profiles
-        run: python3 .github/scripts/check-owned-runner-profiles.py
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.4.0'
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Validate JSON manifests
-        run: bun run validate
-
-      - name: Validate Cargo workspace
-        run: cargo metadata --format-version 1
-
-      - name: Install workspace dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build Rust engine
-        run: bun run build:rust
-
-      - name: Run Rust tests
-        run: cargo test
-
-      - name: Run MCP adapter tests
-        run: bun test
-
-      - name: Public benchmark proof
-        run: bun run benchmark:public-proof
-
-      - name: Release gate
-        run: bun run benchmark:release-gate
-
-      - name: Check whitespace errors
-        run: git diff --check HEAD
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: bun install --frozen-lockfile
+      - name: Manifests agree on one version
+        run: bun scripts/check-version.ts
+      - name: Committed UI bundle is up to date
+        run: |
+          bun run build:ui
+          git diff --exit-code crates/repomap/assets || (echo "::error::run 'bun run build:ui' and commit crates/repomap/assets" && exit 1)
+      - name: Build release binary
+        run: cargo build --release --locked -p repomap
+      - name: Smoke (CLI, export, MCP over stdio, npm launcher)
+        run: |
+          set -euo pipefail
+          B=target/release/repomap
+          $B version
+          $B index . --no-cache
+          $B map | head -20
+          $B search "call resolution" --limit 3
+          $B context Index.build --code-lines 5
+          $B trace handleRefresh decode -C crates/repomap-core/tests/fixture
+          $B impact decode -C crates/repomap-core/tests/fixture
+          $B export --out /tmp/map.html && test -s /tmp/map.html
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"query":"pagerank"}}}' \
+            | (cat; sleep 3) | $B mcp > /tmp/mcp.out
+          grep -q '"name":"impact"' /tmp/mcp.out
+          grep -q 'pagerank' /tmp/mcp.out
+          REPOMAP_BIN=$PWD/$B node packages/repomap/bin/repomap.js version
+      - name: Docs build
+        run: bun run docs:build

@@ -1,0 +1,40 @@
+name: bench
+
+# Indexing and query benchmarks on large public repositories, on a
+# GitHub-hosted runner. Results land in the job summary and an artifact.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['scripts/bench.py', '.github/workflows/bench.yml']
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked -p repomap
+      - name: Clone corpora
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/corpus && cd /tmp/corpus
+          clone() { git clone -q --depth 1 --branch "$2" "https://github.com/$1" "$(basename $1)"; }
+          clone microsoft/vscode 1.104.0 &
+          clone rust-lang/rust-analyzer 2025-09-22 &
+          clone django/django 5.2.6 &
+          clone kubernetes/kubernetes v1.34.1 &
+          wait
+          du -sh /tmp/corpus/*
+      - name: Run
+        run: python3 scripts/bench.py target/release/repomap /tmp/corpus bench.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench
+          path: bench.json

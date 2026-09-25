@@ -1,5 +1,0 @@
-{
-  "from": "src/auth/middleware.ts",
-  "to": "src/billing/webhook.ts",
-  "relation": "depends_on"
-}
