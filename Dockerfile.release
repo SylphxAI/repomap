@@ -1,0 +1,16 @@
+# Release image: packs the prebuilt, portable (glibc 2.17) binaries from the
+# release workflow, so multi-arch needs no emulated compile.
+# Build context must contain dist/<TARGETARCH>/repomap.
+FROM debian:bookworm-slim
+ARG TARGETARCH
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && git config --system --add safe.directory '*'
+COPY dist/${TARGETARCH}/repomap /usr/local/bin/repomap
+ENV REPOMAP_CACHE_DIR=/tmp/repomap-cache
+WORKDIR /workspace
+LABEL org.opencontainers.image.source="https://github.com/SylphxAI/repomap" \
+      org.opencontainers.image.description="A map of your codebase for AI agents: code graph, search, call paths and change impact (MCP stdio server)." \
+      org.opencontainers.image.licenses="MIT" \
+      io.modelcontextprotocol.server.name="io.github.SylphxAI/repomap"
+ENTRYPOINT ["repomap", "mcp"]

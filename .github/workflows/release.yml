@@ -165,3 +165,80 @@ jobs:
           ./mcp-publisher validate
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish
+
+      - name: Deprecate retired MCP Registry names (spine, locus)
+        run: |
+          set -euo pipefail
+          # The npm packages @sylphx/spine and @sylphx/locus stay live as thin
+          # aliases of repomap; only their registry listings retire.
+          # --yes skips the bulk-operation prompt (no stdin in CI). A re-run on an
+          # already-deprecated name answers "No changes to apply": success here.
+          for retired in io.github.SylphxAI/spine io.github.SylphxAI/locus; do
+            if ! out=$(./mcp-publisher status --status deprecated --all-versions --yes \
+                --message 'Merged into repomap. Use io.github.SylphxAI/repomap (npm @sylphx/repomap).' \
+                "$retired" 2>&1); then
+              if grep -qE 'already set to the provided values|No changes to apply' <<<"$out"; then
+                echo "$retired already deprecated"
+              else
+                echo "$out" >&2; exit 1
+              fi
+            fi
+            enc=$(node -p "encodeURIComponent(process.argv[1])" "$retired")
+            ok=false
+            for i in $(seq 1 24); do
+              if curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/$enc/versions/latest" > /tmp/retired.json && \
+                 jq -e '._meta["io.modelcontextprotocol.registry/official"].status == "deprecated"' /tmp/retired.json >/dev/null; then
+                echo "readback: $retired deprecated"; ok=true; break
+              fi
+              sleep 5
+            done
+            [ "$ok" = true ] || { echo "::error::$retired deprecation readback failed"; exit 1; }
+          done
+
+  docker:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      V: ${{ needs.check.outputs.version }}
+      IMAGE: ghcr.io/sylphxai/repomap
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-linux-*
+          path: artifacts
+      - name: Stage prebuilt linux binaries
+        run: |
+          set -euo pipefail
+          mkdir -p dist/amd64 dist/arm64
+          cp artifacts/native-linux-x64-gnu/repomap dist/amd64/repomap
+          cp artifacts/native-linux-arm64-gnu/repomap dist/arm64/repomap
+          chmod +x dist/*/repomap
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.release
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.V }},${{ env.IMAGE }}:latest
+      - name: Read back the image
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "$IMAGE:$V"
+          docker run --rm "$IMAGE:$V" version 2>/dev/null || docker run --rm --entrypoint repomap "$IMAGE:$V" version
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"verifyToken"}}}' \
+            | (cat; sleep 4) | docker run -i --rm -v "$PWD/crates/repomap-core/tests/fixture:/workspace:ro" "$IMAGE:$V" > /tmp/docker-mcp.out
+          grep -q verifyToken /tmp/docker-mcp.out
+          echo "ghcr image $IMAGE:$V serves MCP over stdio"
