@@ -10,7 +10,7 @@ use std::time::Duration;
 
 const PROTOCOLS: [&str; 4] = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
-const INSTRUCTIONS: &str = "repomap is a map of this codebase. Start with `map` to see modules, central files and key symbols. Use `search` to find code by words or identifiers, `context` for a 360° view of a symbol or file (code, callers, callees, tests), `trace` for call paths, and `impact` before editing to see what could break (or `impact` with changed=true to review the current diff). Every answer cites file:line.";
+const INSTRUCTIONS: &str = "repomap is a map of this codebase. Start with `map` to see modules, central files and key symbols. Use `search` to find code by words or identifiers, `context` for a 360° view of a symbol or file (code, callers, callees, tests), `trace` for call paths, and `impact` before editing to see what could break (or `impact` with changed=true to review the current diff). `db` maps the database schema and where the code queries each table. Every answer cites file:line.";
 
 struct Roots {
     list: Mutex<Option<Vec<PathBuf>>>,

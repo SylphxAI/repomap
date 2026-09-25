@@ -54,6 +54,18 @@ For a symbol it returns the code, callers with call-site lines, callees, subtype
 
 Returns a risk level (low, medium or high), callers grouped by depth with call sites, the files that import the target files, the modules touched and the test files to run.
 
+## `db`
+
+Database map: tables, columns, primary and foreign keys, indexes, and the code that queries each table.
+
+| Arg | Type | |
+|---|---|---|
+| `table` | string | Focus on one table |
+| `url_env` | string | Name of an env var with a live connection string (Postgres, MySQL, SQLite), read-only |
+| `url` | string | Connection string. Prefer `url_env` so the secret never enters the transcript. |
+
+With no URL, repomap reads the repository's migrations, Prisma, Drizzle, SQLAlchemy and Diesel schema. See [Database map](/guide/database).
+
 ## Legacy names
 
 `architecture_*`, `codebase_search` and `find_related` are accepted until 2.0. See the [migration guide](/guide/migrate).

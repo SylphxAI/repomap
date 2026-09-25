@@ -14,6 +14,7 @@ pub fn canonical(name: &str) -> Option<&'static str> {
         "context" | "architecture_context_pack" | "architecture_evidence" | "find_related" => "context",
         "trace" | "architecture_path" | "architecture_trace" => "trace",
         "impact" | "architecture_impact" => "impact",
+        "db" | "database" | "schema" => "db",
         _ => return None,
     })
 }
@@ -83,6 +84,18 @@ pub fn definitions(include_legacy: bool) -> Vec<Value> {
                 "root": root, "format": format
             }},
             "annotations": {"readOnlyHint": true, "openWorldHint": false}
+        }),
+        json!({
+            "name": "db",
+            "title": "Database map",
+            "description": "Map the database: tables, columns, primary and foreign keys, indexes, and the code that queries each table (file:line). By default it reads schema sources in the repo: SQL migrations, Prisma, Drizzle, SQLAlchemy and Diesel. To inspect a live Postgres, MySQL or SQLite database, pass `url_env` (the NAME of an environment variable holding the connection string). The connection is strictly read-only and the string is never stored or shown. Pass `table` for one table's full detail.",
+            "inputSchema": {"type": "object", "properties": {
+                "table": {"type": "string", "description": "Focus on one table: columns, indexes, who references it, and where the code queries it."},
+                "url_env": {"type": "string", "description": "Name of an env var with the connection string, e.g. DATABASE_URL."},
+                "url": {"type": "string", "description": "Connection string (prefer url_env so secrets stay out of transcripts)."},
+                "root": root, "format": format
+            }},
+            "annotations": {"readOnlyHint": true, "openWorldHint": true}
         }),
     ];
     if include_legacy {
@@ -191,6 +204,41 @@ pub fn call(ws: &Workspace, name: &str, args: &Value, root: &std::path::Path) ->
                 out!(index.impact(&targets, &opts)?)
             }
         }
+        "db" => {
+            let url = match (s(args, &["url"]), s(args, &["url_env"])) {
+                (Some(u), _) => Some(u.to_string()),
+                (None, Some(var)) => Some(std::env::var(var).map_err(|_| format!("environment variable `{var}` is not set"))?),
+                _ => None,
+            };
+            let schema = db_schema(index, url.as_deref()).map_err(|e| e.to_string())?;
+            let table = s(args, &["table"]);
+            let json = match table.and_then(|t| schema.table(t)) {
+                Some(t) => serde_json::to_value(t).unwrap_or(Value::Null),
+                None => serde_json::to_value(&schema).unwrap_or(Value::Null),
+            };
+            Ok(Output { text: schema.text(table), json })
+        }
         _ => Err(format!("unknown tool `{name}`")),
     }
+}
+
+/// Live schema when a URL is given (with code names borrowed from the repo's
+/// schema sources), otherwise the repo's own schema; then link tables to code.
+pub fn db_schema(index: &repomap_core::Index, url: Option<&str>) -> anyhow::Result<repomap_core::db::DbSchema> {
+    let from_repo = repomap_core::db::from_repo(index);
+    let mut schema = match url {
+        Some(u) => {
+            let mut live = crate::dblive::introspect(u)?;
+            for t in live.tables.iter_mut() {
+                if let Some(st) = from_repo.table(&t.key()) {
+                    t.aliases = st.aliases.clone();
+                    t.source = format!("{} (defined in {})", t.source, st.source);
+                }
+            }
+            live
+        }
+        None => from_repo,
+    };
+    repomap_core::db::link_code(index, &mut schema);
+    Ok(schema)
 }

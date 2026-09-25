@@ -104,3 +104,65 @@ jobs:
             | (cat; sleep 4) | docker run -i --rm -v "$PWD/crates/repomap-core/tests/fixture:/workspace:ro" repomap:ci | tee /tmp/out.jsonl
           grep -q '"name":"impact"' /tmp/out.jsonl
           grep -q 'verifyToken' /tmp/out.jsonl
+
+  live-db:
+    name: live database introspection (read-only)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: pw, POSTGRES_DB: app }
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+      mysql:
+        image: mysql:8.4
+        env: { MYSQL_ROOT_PASSWORD: pw, MYSQL_DATABASE: app }
+        ports: ['3306:3306']
+        options: --health-cmd "mysqladmin ping -ppw" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked -p repomap
+      - name: Seed schemas
+        run: |
+          set -euo pipefail
+          cat > /tmp/schema.sql <<'SQL'
+          create table orgs (id integer primary key, name varchar(100) not null);
+          create table users (id integer primary key, org_id integer, email varchar(200) not null unique, foreign key (org_id) references orgs(id));
+          create table posts (id integer primary key, author_id integer not null, title text, constraint posts_author foreign key (author_id) references users(id));
+          create index posts_author_idx on posts(author_id);
+          SQL
+          PGPASSWORD=pw psql -h 127.0.0.1 -U postgres -d app -v ON_ERROR_STOP=1 -f /tmp/schema.sql
+          mysql -h 127.0.0.1 -uroot -ppw app < /tmp/schema.sql
+      - name: Introspect (Postgres, MySQL) and check nothing was written
+        env:
+          PG_URL: postgres://postgres:pw@127.0.0.1:5432/app
+          MY_URL: mysql://root:pw@127.0.0.1:3306/app
+        run: |
+          set -euo pipefail
+          B=target/release/repomap
+          for v in PG_URL MY_URL; do
+            $B db --url-env $v --json -C crates/repomap-core/tests/fixture > /tmp/$v.json
+            jq -e '.tables | map(select(.name=="posts"))[0].foreign_keys[0].ref_table == "users"' /tmp/$v.json
+            jq -e '.tables | map(select(.name=="users"))[0].foreign_keys[0].ref_table == "orgs"' /tmp/$v.json
+            ! grep -q 'pw@' /tmp/$v.json
+            $B db posts --url-env $v -C crates/repomap-core/tests/fixture | tee /tmp/$v.txt
+            grep -q 'author_id' /tmp/$v.txt
+          done
+          # The tables are unchanged (no DDL/DML from repomap).
+          PGPASSWORD=pw psql -h 127.0.0.1 -U postgres -d app -tAc "select count(*) from information_schema.tables where table_schema='public'" | grep -qx 3
+          # A bad password never leaks into errors.
+          if $B db --url postgres://postgres:wrongsecret@127.0.0.1:5432/app 2> /tmp/err.txt; then exit 1; fi
+          cat /tmp/err.txt; ! grep -q wrongsecret /tmp/err.txt
+
+  action:
+    name: GitHub Action (published package)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: s
+        uses: ./
+      - run: |
+          test "${{ steps.s.outputs.score }}" -ge 0
+          echo "${{ steps.s.outputs.badge-markdown }}"

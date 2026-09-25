@@ -39,6 +39,8 @@ export default defineConfig({
         { text: 'Graph UI and export', link: '/guide/ui' },
         { text: 'Live demo', link: '/demo' },
         { text: 'Claude Code hook', link: '/guide/claude-code-hook' },
+        { text: 'Database map', link: '/guide/database' },
+        { text: 'Agent-readiness score', link: '/guide/score' },
         { text: 'How it works', link: '/guide/how-it-works' },
         { text: 'From Spine or Locus', link: '/guide/migrate' },
       ] },

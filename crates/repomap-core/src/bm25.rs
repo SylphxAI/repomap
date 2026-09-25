@@ -61,6 +61,14 @@ impl Bm25 {
         Bm25 { chunks, postings, avg_len }
     }
 
+    /// Files that contain `term` (lowercased token) anywhere in a chunk.
+    pub fn files_with(&self, term: &str) -> std::collections::HashSet<u32> {
+        self.postings
+            .get(term)
+            .map(|v| v.iter().map(|(c, _)| self.chunks[*c as usize].file).collect())
+            .unwrap_or_default()
+    }
+
     pub fn terms(&self) -> usize {
         self.postings.len()
     }

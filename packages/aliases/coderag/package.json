@@ -1,6 +1,6 @@
 {
   "name": "@sylphx/coderag",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "CodeRAG is now repomap. This package is a thin alias of @sylphx/repomap (same MCP server and CLI).",
   "bin": {
     "coderag": "bin/coderag.js",
@@ -14,7 +14,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@sylphx/repomap": "1.1.2"
+    "@sylphx/repomap": "1.2.0"
   },
   "keywords": [
     "repomap",

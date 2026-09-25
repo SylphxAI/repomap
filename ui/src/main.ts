@@ -12,8 +12,16 @@ interface NodeData {
   g: string;
   t: boolean;
   s: Sym[];
+  /** db mode: code that queries the table [file, line, symbol, via] */
+  q?: [string, number, string | null, string][];
+  /** db mode: [file, line] of the definition */
+  src?: [string, number];
+  /** db mode: indexes [name, columns, unique] */
+  ix?: [string, string[], boolean][];
 }
 interface Data {
+  mode?: "code" | "db";
+  origin?: string;
   version: string;
   repo: string;
   commit?: string | null;
@@ -77,6 +85,7 @@ async function load(): Promise<Data> {
 
 function mount(data: Data) {
   const n = data.nodes.length;
+  const DB = data.mode === "db";
   for (const c of data.communities) KIND.set(c.id, c.kind ?? "core");
   const isAux = (d: NodeData) => d.t || (KIND.get(d.c) ?? "core") !== "core";
   const coreComms = data.communities.filter((c) => (c.kind ?? "core") === "core");
@@ -267,7 +276,15 @@ function mount(data: Data) {
     coreComms.slice(0, 60).map(modRow).join("") +
     (auxComms.length ? `<div class="mod-sep">Tests, examples &amp; docs</div>` + auxComms.map(modRow).join("") : "");
   $("#brand .title").innerHTML = `repomap <span>/ ${esc(data.repo)}</span>`;
-  $("#brand .stats").textContent = `${fmt(data.stats.code_files)} files · ${fmt(data.stats.symbols)} symbols · ${fmt(data.stats.call_edges)} calls · ${coreComms.length} modules`;
+  $("#brand .stats").textContent = DB
+    ? `${fmt(n)} tables · ${fmt(data.stats.symbols)} columns · ${fmt(data.stats.file_edges)} foreign keys · ${fmt(data.stats.call_edges)} code refs`
+    : `${fmt(data.stats.code_files)} files · ${fmt(data.stats.symbols)} symbols · ${fmt(data.stats.call_edges)} calls · ${coreComms.length} modules`;
+  if (DB) {
+    (document.querySelector('#controls [data-c="tests"]') as HTMLElement | null)?.style.setProperty("display", "none");
+    $("#brand .title").innerHTML = `repomap db <span>/ ${esc(data.repo)}</span>`;
+    $("#legend h3").textContent = "Table groups";
+    $<HTMLInputElement>("#search input").placeholder = "Search tables and columns…";
+  }
   $("#legend .list").innerHTML = legendHTML;
   $("#legend .list").addEventListener("click", (e) => {
     const el = (e.target as HTMLElement).closest(".mod") as HTMLElement | null;
@@ -298,7 +315,9 @@ function mount(data: Data) {
     state.hovered = node;
     state.neighbors = new Set(graph.neighbors(node));
     const d = data.nodes[+node];
-    tip.innerHTML = `<b>${esc(base(d.p))}</b><span>${esc(d.p)}</span><br><span>${fmt(d.l)} lines · ${d.s.length} symbols · ${graph.inDegree(node)} in / ${graph.outDegree(node)} out</span>`;
+    tip.innerHTML = DB
+      ? `<b>${esc(d.p)}</b><span>${fmt(d.l)} columns · referenced by ${graph.inDegree(node)} · references ${graph.outDegree(node)} · ${(d.q ?? []).length} code refs</span>`
+      : `<b>${esc(base(d.p))}</b><span>${esc(d.p)}</span><br><span>${fmt(d.l)} lines · ${d.s.length} symbols · ${graph.inDegree(node)} in / ${graph.outDegree(node)} out</span>`;
     tip.style.display = "block";
     moveTip(event.x, event.y);
     renderer.refresh({ skipIndexation: true });
@@ -411,6 +430,7 @@ function mount(data: Data) {
     const pct = Math.max(1, Math.round((100 * data.nodes.filter((x) => x.r > d.r).length) / n));
     const href = openHref(d.p);
     const syms = [...d.s].sort((a, b) => a[2] - b[2]);
+    if (DB) return renderTable(node, d, comm?.name ?? "", ins, outs);
     panel.innerHTML = `
       <div class="head">
         <button class="close" title="Close (Esc)">×</button>
@@ -444,6 +464,45 @@ function mount(data: Data) {
       const row = panel.querySelector<HTMLElement>(`.sym[data-line="${symLine}"]`);
       if (row) showSymbol(d, row);
     }
+  }
+
+  function renderTable(node: string, d: NodeData, group: string, ins: string[], outs: string[]) {
+    const src = d.src && d.src[0] ? openHref(d.src[0], d.src[1]) : "";
+    const refRow = (r: [string, number, string | null, string]) => {
+      const href = openHref(r[0], r[1]);
+      const inner = `<span class="k ${esc(r[3])}">${esc(r[3][0] ?? "·")}</span><span class="n">${esc(r[2] ?? base(r[0]))} <span class="muted">${esc(r[0])}</span></span><span class="ln">:${r[1]}</span>`;
+      return href ? `<a class="row" href="${esc(href)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="row">${inner}</div>`;
+    };
+    panel.innerHTML = `
+      <div class="head">
+        <button class="close" title="Close (Esc)">×</button>
+        <div class="fname">${esc(d.p)}</div>
+        <div class="fpath">${esc(d.src && d.src[0] ? `${d.src[0]}:${d.src[1]}` : data.origin ?? "")}</div>
+        <div class="chips">
+          <span class="chip"><span class="dot" style="background:${commColor(d.c)}"></span>${esc(group)}</span>
+          <span class="chip">${esc(d.g)}</span><span class="chip">${fmt(d.l)} columns</span>
+          <span class="chip">${(d.q ?? []).length} code refs</span>
+        </div>
+        <div class="actions">
+          <button class="btn impact" data-act="impact" title="Tables that reference this one, transitively (i)">◎ Impact</button>
+          <button class="btn deps" data-act="deps" title="Tables this one references (d)">→ References</button>
+          ${src ? `<a class="btn" href="${esc(src)}" target="_blank" rel="noopener">Definition ↗</a>` : ""}
+        </div>
+      </div>
+      <div class="body">
+        <div id="mode"></div>
+        <section><h3><span>Columns</span><span>${d.s.length}</span></h3>
+          ${d.s.map((c) => `<div class="row"><span class="k ${c[1]}">${kindLetter(c[1])}</span><span class="n">${esc(c[0])}</span></div>`).join("") || '<div class="muted" style="padding:4px 8px">No columns</div>'}
+        </section>
+        ${(d.ix ?? []).length ? `<section><h3><span>Indexes</span><span>${d.ix!.length}</span></h3>${d.ix!.map((x) => `<div class="row"><span class="k ${x[2] ? "pk" : "column"}">${x[2] ? "U" : "i"}</span><span class="n">${esc(x[1].join(", "))} <span class="muted">${esc(x[0])}</span></span></div>`).join("")}</section>` : ""}
+        <section><h3><span>Queried from</span><span>${(d.q ?? []).length}</span></h3>${(d.q ?? []).slice(0, 200).map(refRow).join("") || '<div class="muted" style="padding:4px 8px">No code references found</div>'}</section>
+        <section><h3><span>Referenced by</span><span>${ins.length}</span></h3>${ins.map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">No foreign keys point here</div>'}</section>
+        <section><h3><span>References</span><span>${outs.length}</span></h3>${outs.map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">No foreign keys</div>'}</section>
+      </div>`;
+    panel.classList.add("open");
+    document.body.classList.add("panel-open");
+    panel.querySelector(".close")!.addEventListener("click", clearSelection);
+    panel.querySelectorAll<HTMLElement>("[data-act]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.act as "impact" | "deps")));
   }
 
   panel.addEventListener("click", (e) => {
@@ -515,7 +574,7 @@ function mount(data: Data) {
     const tests = [...state.depth.keys()].filter((k) => data.nodes[+k].t).length;
     if (state.mode === "impact") {
       const total = state.depth.size - 1;
-      box.innerHTML = `<div class="summary"><b>${fmt(by[1].length)}</b> files depend on this directly, <b>${fmt(total - by[1].length)}</b> more indirectly — ${mods.size} modules, ${tests} test files.</div>
+      box.innerHTML = `<div class="summary"><b>${fmt(by[1].length)}</b> ${DB ? "tables reference this directly" : "files depend on this directly"}, <b>${fmt(total - by[1].length)}</b> more indirectly — ${mods.size} ${DB ? "groups" : `modules, ${tests} test files`}.</div>
         ${[1, 2, 3].filter((k) => by[k].length).map((k) => `<section><h3><span>${k === 1 ? "Direct" : `Depth ${k}`}</span><span>${by[k].length}</span></h3>${by[k].slice(0, 80).map((i) => fileRow(i, "", DEPTH[k])).join("")}</section>`).join("")}`;
     } else {
       box.innerHTML = `<div class="summary deps"><b>${fmt(by[1].length)}</b> direct dependencies, <b>${fmt(by[2].length)}</b> at depth 2.</div>`;
@@ -666,7 +725,7 @@ function mount(data: Data) {
 }
 
 function kindLetter(k: string) {
-  return ({ function: "ƒ", method: "m", class: "C", struct: "S", interface: "I", trait: "T", enum: "E", type: "t", module: "M", macro: "!" } as Record<string, string>)[k] ?? "·";
+  return ({ function: "ƒ", method: "m", class: "C", struct: "S", interface: "I", trait: "T", enum: "E", type: "t", module: "M", macro: "!", pk: "K", fk: "→", column: "c" } as Record<string, string>)[k] ?? "·";
 }
 
 /** Opaque blend of `hex` over the background (WebGL alpha blending varies by GPU). */

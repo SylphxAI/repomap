@@ -10,6 +10,8 @@ repomap search <query…> [--path P] [--kind K] [--limit N] [--json]
 repomap context <target> [--code-lines N] [--json]
 repomap trace <from> [to] [--callers] [--depth N] [--json]
 repomap impact [target…] [--changed] [--base REF] [--depth N] [--json]
+repomap db [table] [--url-env VAR|--url URL] [--serve|--out f.html] [--json]
+repomap score [dir] [--json] [--min N] [--update-readme README.md [--insert]]
 repomap index [dir] [--no-cache] [--json]            build and print timings
 repomap mcp [--root dir]                             MCP server on stdio
 repomap hook                                         Claude Code PreToolUse hook (reads JSON on stdin)

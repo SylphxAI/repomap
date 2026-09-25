@@ -1,0 +1,82 @@
+name: 'repomap agent-readiness'
+description: 'Score how agent-friendly your repository is (0-100) and keep the README badge fresh.'
+author: 'Sylphx'
+branding:
+  icon: 'map'
+  color: 'purple'
+inputs:
+  path:
+    description: 'Repository directory to score.'
+    default: '.'
+  readme:
+    description: 'README to update when update-readme is true.'
+    default: 'README.md'
+  update-readme:
+    description: 'Replace the agent-ready badge in the README (or insert one under the title) and commit it.'
+    default: 'false'
+  commit-message:
+    description: 'Commit message for the badge update.'
+    default: 'docs: update agent-readiness badge'
+  min-score:
+    description: 'Fail the step when the score is below this value (0 disables).'
+    default: '0'
+  version:
+    description: 'repomap version from npm.'
+    default: 'latest'
+outputs:
+  score:
+    description: 'Agent-readiness score, 0-100.'
+    value: ${{ steps.score.outputs.score }}
+  badge-url:
+    description: 'Badge image URL.'
+    value: ${{ steps.score.outputs.badge-url }}
+  badge-markdown:
+    description: 'Badge Markdown for a README.'
+    value: ${{ steps.score.outputs.badge-markdown }}
+runs:
+  using: 'composite'
+  steps:
+    - id: score
+      shell: bash
+      env:
+        REPOMAP_VERSION: ${{ inputs.version }}
+        TARGET: ${{ inputs.path }}
+      run: |
+        set -euo pipefail
+        npx -y "@sylphx/repomap@${REPOMAP_VERSION}" score "$TARGET" --json > "$RUNNER_TEMP/repomap-score.json"
+        npx -y "@sylphx/repomap@${REPOMAP_VERSION}" score "$TARGET" >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "score=$(jq -r .score "$RUNNER_TEMP/repomap-score.json")"
+          echo "badge-url=$(jq -r .badge_url "$RUNNER_TEMP/repomap-score.json")"
+          echo "badge-markdown=$(jq -r .badge_markdown "$RUNNER_TEMP/repomap-score.json")"
+        } >> "$GITHUB_OUTPUT"
+    - if: ${{ inputs.update-readme == 'true' }}
+      shell: bash
+      env:
+        REPOMAP_VERSION: ${{ inputs.version }}
+        TARGET: ${{ inputs.path }}
+        README_PATH: ${{ inputs.readme }}
+        MESSAGE: ${{ inputs.commit-message }}
+      run: |
+        set -euo pipefail
+        npx -y "@sylphx/repomap@${REPOMAP_VERSION}" score "$TARGET" --update-readme "$README_PATH" --insert > /dev/null
+        cd "$TARGET"
+        if git diff --quiet -- "$README_PATH"; then
+          echo "Badge already up to date"
+          exit 0
+        fi
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add "$README_PATH"
+        git commit -m "$MESSAGE"
+        git push
+    - if: ${{ inputs.min-score != '0' }}
+      shell: bash
+      env:
+        MIN: ${{ inputs.min-score }}
+        SCORE: ${{ steps.score.outputs.score }}
+      run: |
+        if [ "$SCORE" -lt "$MIN" ]; then
+          echo "::error::agent-readiness $SCORE is below the minimum $MIN"
+          exit 1
+        fi
