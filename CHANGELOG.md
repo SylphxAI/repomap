@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- `setup --claude-hooks` run through `npx` no longer writes `repomap hook` (a temporary npx shim) into Claude Code settings. It writes `npx -y @sylphx/repomap hook` unless repomap is installed globally.
+
 ## 1.1.0
 
 - **Better modules.** Tests, examples, docs and benchmarks are detected by path (including `jvmTest`, `runtime-tests`, `watchOS Example`) and grouped by role. They no longer join or name core modules. Modules are named after their dominant directory with generic segments dropped (`tokio/runtime`, `flask/sansio`, `okhttp/okhttp3`). Name clashes are settled by the sub-directory that sets a module apart, or by its central file. Unconnected stragglers go into one `other` group instead of many one-file modules.
