@@ -99,7 +99,10 @@ pub struct Chunk {
     pub end: u32,
     pub symbol: Option<u32>,
     /// (term, frequency), terms sorted.
-    pub terms: Vec<(String, u16)>,
+    /// Distinct terms, space-separated and sorted (one allocation per chunk).
+    pub terms: String,
+    /// Frequency of each term in `terms`, same order.
+    pub tfs: Vec<u16>,
     pub len: u32,
 }
 
@@ -441,11 +444,21 @@ fn build_chunks(path: &str, src: &str, line_starts: &[usize], symbols: &[SymbolF
         if terms.is_empty() {
             continue;
         }
+        let mut joined = String::with_capacity(terms.iter().map(|(t, _)| t.len() + 1).sum());
+        let mut tfs = Vec::with_capacity(terms.len());
+        for (t, f) in terms {
+            if !joined.is_empty() {
+                joined.push(' ');
+            }
+            joined.push_str(&t);
+            tfs.push(f);
+        }
         chunks.push(Chunk {
             start,
             end,
             symbol: sym,
-            terms,
+            terms: joined,
+            tfs,
             len,
         });
     }

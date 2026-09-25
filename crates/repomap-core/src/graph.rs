@@ -7,7 +7,15 @@ use crate::parse::FileFacts;
 use std::collections::{HashMap, HashSet};
 
 pub fn link(index: &mut Index, facts: &[&FileFacts]) {
+    let trace = std::env::var_os("REPOMAP_TRACE").is_some();
+    let t = std::time::Instant::now();
+    let lap = |what: &str| {
+        if trace {
+            eprintln!("[repomap] {what}: {} ms", t.elapsed().as_millis());
+        }
+    };
     let resolver = Resolver::new(index);
+    lap("resolver");
     let n = index.files.len();
 
     // 1. Imports -> file edges.
@@ -25,6 +33,7 @@ pub fn link(index: &mut Index, facts: &[&FileFacts]) {
         imports[i] = set;
     }
 
+    lap("imports");
     // 2. Calls -> symbol edges.
     let mut sym_edges: Vec<SymEdge> = Vec::new();
     let mut file_calls: HashMap<(u32, u32), u32> = HashMap::new();
@@ -79,6 +88,7 @@ pub fn link(index: &mut Index, facts: &[&FileFacts]) {
         }
     }
 
+    lap("calls");
     // 3. Aggregate file edges.
     let mut agg: HashMap<(u32, u32), FileEdge> = HashMap::new();
     for (i, list) in imports.iter().enumerate() {
@@ -108,6 +118,7 @@ pub fn link(index: &mut Index, facts: &[&FileFacts]) {
         file_in[e.to as usize].push(k as u32);
     }
 
+    lap("aggregate");
     let file_rank = pagerank(n, &file_edges);
     let mut sym_rank = vec![0f32; ns];
     for e in &sym_edges {
@@ -128,7 +139,9 @@ pub fn link(index: &mut Index, facts: &[&FileFacts]) {
     index.file_in = file_in;
     index.file_rank = file_rank;
     index.sym_rank = sym_rank;
+    lap("rank");
     let (community, communities) = communities(index);
+    lap("communities");
     index.community = community;
     index.communities = communities;
 }
@@ -239,6 +252,10 @@ struct Resolver<'a> {
     by_stem_path: HashMap<String, Vec<u32>>,
     /// dir -> code file ids
     by_dir: HashMap<&'a str, Vec<u32>>,
+    /// file stem (or package dir for `__init__`) -> code file ids
+    by_stem_name: HashMap<&'a str, Vec<u32>>,
+    /// every trailing segment run of a dir (`a/b/c` -> `c`, `b/c`, `a/b/c`) -> dirs
+    dir_suffix: HashMap<String, Vec<&'a str>>,
     /// npm workspace package name -> package dir
     js_packages: Vec<(String, String)>,
     /// Rust crate name (underscored) -> src dir
@@ -295,7 +312,27 @@ impl<'a> Resolver<'a> {
             }
         }
         js_packages.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
-        Resolver { index, by_filename, by_stem_path, by_dir, js_packages, crates }
+        let mut by_stem_name: HashMap<&str, Vec<u32>> = HashMap::new();
+        for (i, f) in index.files.iter().enumerate() {
+            if f.lang.is_none() {
+                continue;
+            }
+            let name = f.path.rsplit('/').next().unwrap_or(&f.path);
+            let stem = strip_ext(name);
+            let key = if stem == "__init__" { parent_dir(&f.path).rsplit('/').next().unwrap_or("") } else { stem };
+            by_stem_name.entry(key).or_default().push(i as u32);
+        }
+        let mut dir_suffix: HashMap<String, Vec<&str>> = HashMap::new();
+        for d in by_dir.keys() {
+            let segs: Vec<&str> = d.split('/').collect();
+            for k in 0..segs.len() {
+                dir_suffix.entry(segs[k..].join("/")).or_default().push(d);
+            }
+        }
+        for v in dir_suffix.values_mut() {
+            v.sort_by_key(|d| (d.len(), *d));
+        }
+        Resolver { index, by_filename, by_stem_path, by_dir, by_stem_name, dir_suffix, js_packages, crates }
     }
 
     fn file(&self, path: &str) -> Option<u32> {
@@ -427,24 +464,16 @@ impl<'a> Resolver<'a> {
 
     fn suffix_stem(&self, rel: &str) -> Vec<u32> {
         let last = rel.rsplit('/').next().unwrap_or(rel);
-        let mut out = Vec::new();
-        for (name, ids) in &self.by_filename {
-            if strip_ext(name) != last && *name != "__init__.py" {
-                continue;
-            }
-            for &id in ids {
-                let p = &self.index.files[id as usize].path;
-                if self.index.files[id as usize].lang.is_none() {
-                    continue;
-                }
-                let stem = strip_ext(p);
+        let Some(ids) = self.by_stem_name.get(last) else { return Vec::new() };
+        let tail = format!("/{rel}");
+        ids.iter()
+            .copied()
+            .filter(|&id| {
+                let stem = strip_ext(&self.index.files[id as usize].path);
                 let stem = stem.strip_suffix("/__init__").unwrap_or(stem);
-                if stem == rel || stem.ends_with(&format!("/{rel}")) {
-                    out.push(id);
-                }
-            }
-        }
-        out
+                stem == rel || stem.ends_with(&tail)
+            })
+            .collect()
     }
 
     fn resolve_go(&self, spec: &str) -> Vec<u32> {
@@ -454,16 +483,7 @@ impl<'a> Resolver<'a> {
         }
         for start in 0..segs.len() - 1 {
             let suffix = segs[start..].join("/");
-            let mut matches: Vec<&str> = self
-                .by_dir
-                .keys()
-                .copied()
-                .filter(|d| *d == suffix || d.ends_with(&format!("/{suffix}")))
-                .collect();
-            if matches.is_empty() {
-                continue;
-            }
-            matches.sort_by_key(|d| d.len());
+            let Some(matches) = self.dir_suffix.get(&suffix) else { continue };
             let d = matches[0];
             return self.by_dir[d]
                 .iter()
@@ -546,9 +566,8 @@ impl<'a> Resolver<'a> {
         }
         if *segs.last().unwrap() == "*" {
             let pkg = segs[..segs.len() - 1].join("/");
-            if let Some((d, ids)) = self.by_dir.iter().find(|(d, _)| **d == pkg || d.ends_with(&format!("/{pkg}"))) {
-                let _ = d;
-                return ids.iter().copied().take(24).collect();
+            if let Some(d) = self.dir_suffix.get(&pkg).and_then(|v| v.first()) {
+                return self.by_dir[d].iter().copied().take(24).collect();
             }
             return Vec::new();
         }

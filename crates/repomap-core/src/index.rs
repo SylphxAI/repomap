@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::{Instant, UNIX_EPOCH};
 
-const CACHE_VERSION: u32 = 4;
+const CACHE_VERSION: u32 = 5;
 const MAX_FILE_BYTES: u64 = 1_000_000;
 
 /// Directories skipped even when they are not git-ignored.
@@ -323,13 +323,18 @@ impl Index {
         };
 
         let t1 = Instant::now();
+        // Move cache hits out of the map so nothing is cloned.
+        let prior: Vec<Option<CacheEntry>> = candidates
+            .iter()
+            .map(|c| cache.remove(&c.path).filter(|hit| hit.mtime == c.mtime && hit.size == c.size))
+            .collect();
+        let stale = !cache.is_empty();
         let results: Vec<Option<(bool, CacheEntry)>> = candidates
             .par_iter()
-            .map(|c| {
-                if let Some(hit) = cache.get(&c.path) {
-                    if hit.mtime == c.mtime && hit.size == c.size {
-                        return Some((true, CacheEntry { mtime: c.mtime, size: c.size, facts: hit.facts.clone() }));
-                    }
+            .zip(prior.into_par_iter())
+            .map(|(c, hit)| {
+                if let Some(hit) = hit {
+                    return Some((true, hit));
                 }
                 let bytes = std::fs::read(&c.abs).ok()?;
                 let src = String::from_utf8_lossy(&bytes);
@@ -356,10 +361,10 @@ impl Index {
                 kept.push((c, entry));
             }
         }
-        if cache.len() != kept.len() {
+        if stale {
             dirty = true;
         }
-        cache.clear();
+        drop(cache);
 
         let t2 = Instant::now();
         let mut index = assemble(root.clone(), &kept);
@@ -451,7 +456,11 @@ fn assemble(root: PathBuf, kept: &[(&Candidate, CacheEntry)]) -> Index {
     for (i, s) in symbols.iter().enumerate() {
         by_name.entry(s.name.clone()).or_default().push(i as u32);
     }
+    let tb = Instant::now();
     let bm25 = Bm25::build(kept.iter().enumerate().map(|(i, (_, e))| (i as u32, &files[i], &e.facts)));
+    if std::env::var_os("REPOMAP_TRACE").is_some() {
+        eprintln!("[repomap] bm25: {} ms", tb.elapsed().as_millis());
+    }
     let mut index = Index {
         root,
         files,

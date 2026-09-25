@@ -26,11 +26,12 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/corpus && cd /tmp/corpus
           clone() { git clone -q --depth 1 --branch "$2" "https://github.com/$1" "$(basename $1)"; }
-          clone microsoft/vscode 1.104.0 &
-          clone rust-lang/rust-analyzer 2025-09-22 &
-          clone django/django 5.2.6 &
-          clone kubernetes/kubernetes v1.34.1 &
-          wait
+          pids=()
+          clone microsoft/vscode 1.104.0 & pids+=($!)
+          clone rust-lang/rust-analyzer 2026-09-21 & pids+=($!)
+          clone django/django 5.2.6 & pids+=($!)
+          clone kubernetes/kubernetes v1.34.1 & pids+=($!)
+          for p in "${pids[@]}"; do wait "$p"; done
           du -sh /tmp/corpus/*
       - name: Run
         run: python3 scripts/bench.py target/release/repomap /tmp/corpus bench.json | tee -a "$GITHUB_STEP_SUMMARY"

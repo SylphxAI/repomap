@@ -47,11 +47,11 @@ impl Bm25 {
                     len: c.len,
                 });
                 total += c.len as u64;
-                for (t, f) in &c.terms {
-                    match postings.get_mut(t.as_str()) {
+                for (t, f) in c.terms.split(' ').zip(c.tfs.iter()) {
+                    match postings.get_mut(t) {
                         Some(v) => v.push((id, *f)),
                         None => {
-                            postings.insert(t.clone(), vec![(id, *f)]);
+                            postings.insert(t.to_string(), vec![(id, *f)]);
                         }
                     }
                 }

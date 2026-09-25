@@ -8,7 +8,7 @@ Results are published with the first benchmark run.
 
 ## Method
 
-- **Corpora:** shallow clones at fixed tags: microsoft/vscode `1.104.0` (TypeScript), rust-lang/rust-analyzer `2025-09-22` (Rust), django/django `5.2.6` (Python) and kubernetes/kubernetes `v1.34.1` (Go).
+- **Corpora:** shallow clones at fixed tags: microsoft/vscode `1.104.0` (TypeScript), rust-lang/rust-analyzer `2026-09-21` (Rust), django/django `5.2.6` (Python) and kubernetes/kubernetes `v1.34.1` (Go).
 - **Cold index:** `repomap index <repo> --no-cache`, the median of 3 runs. This covers the walk, tree-sitter parse, import and call resolution, PageRank, Louvain and BM25.
 - **Warm index:** the same command with the per-file cache populated. This is what a restart of the MCP server costs.
 - **Peak RSS:** the highest resident memory of the index runs.
