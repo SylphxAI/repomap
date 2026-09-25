@@ -42,6 +42,7 @@ That's it. Add `--claude-hooks` to also [enrich Claude Code's Grep and Glob](#cl
 ```
 
 Claude Code: `claude mcp add repomap -- npx -y @sylphx/repomap mcp`
+Claude Code plugin: `/plugin marketplace add SylphxAI/repomap`, then `/plugin install repomap@repomap`
 Codex (`~/.codex/config.toml`):
 
 ```toml
