@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.1
+
+- **Security (`serve`, `db --serve`):**
+  - Query and `file://` URI percent-decoding now works on bytes. Malformed input such as `?q=%aé` could panic a request thread.
+  - Requests are served by a fixed pool of 8 workers instead of one thread per request.
+  - A non-loopback `--host` now always requires a token. Pass `--token` or `REPOMAP_TOKEN`, or repomap generates one and prints it in the URL. The token is accepted as `?token=`, a Bearer header, or an HttpOnly cookie, and compared in constant time.
+- **Release:** npm packages publish with trusted publishing (OIDC, with provenance) instead of a long-lived token.
+- **Copy:**
+  - The README tool table is generated from the tool registry (`repomap tools`). There are six tools, including `db`.
+  - One one-liner (`brand.json`) feeds the README, docs, npm, the MCP Registry and the GitHub description, and CI checks that they match.
+  - Migration notes now live in one place.
+- **Score:** `repomap score --badge-style static` writes a self-hosted `.github/agent-ready.svg` for people who prefer not to use the hosted badge. The Action takes `badge-style: static`.
+
 ## 1.2.0
 
 - **Database map.** `repomap db` and the `db` MCP tool map tables, columns, keys and indexes, and link every table to the code that queries it (raw SQL, Prisma, Drizzle, SQLAlchemy, Diesel).

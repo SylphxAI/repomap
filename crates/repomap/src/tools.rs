@@ -117,6 +117,32 @@ pub fn definitions(include_legacy: bool) -> Vec<Value> {
     tools
 }
 
+/// README rows for each tool: (name, "ask it", "returns"). `repomap tools
+/// --markdown` renders the README table from these plus the registry above.
+pub const DOCS: &[(&str, &str, &str)] = &[
+    ("map", "\"Give me the lay of the land\" / `focus: \"src/server\"`", "Modules, central files, key symbols, entry points; an outline with line numbers when focused"),
+    ("search", "`\"refresh token expiry\"`, `\"parseConfig\"`", "Ranked `file:line` ranges (functions, methods, classes) with the matching lines"),
+    ("context", "`SessionStore.refresh`, `src/auth/token.ts`, `token.ts:42`", "Code, callers (with call sites), callees, subtypes, members, imports, importers, tests"),
+    ("trace", "`from: handleRequest, to: db.query`", "Shortest call path, or the call tree above/below a symbol"),
+    ("impact", "`target: verifyToken` or `changed: true`", "Risk level, callers by depth, importing files, modules, tests to run"),
+    ("db", "`table: users`, or `url_env: DATABASE_URL` for a live database", "Tables, keys, indexes, and the code (`file:line`) that queries each table"),
+];
+
+const NUMBERS: [&str; 10] = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+
+/// The README tool table, generated from the registry.
+pub fn markdown() -> String {
+    let defs = definitions(false);
+    let n = defs.len();
+    let mut o = format!("{} tools, each with an obvious job:\n\n| Tool | Ask it | Returns |\n|---|---|---|\n", NUMBERS.get(n).copied().unwrap_or("Many"));
+    for d in &defs {
+        let name = d["name"].as_str().unwrap_or("");
+        let (ask, ret) = DOCS.iter().find(|x| x.0 == name).map(|x| (x.1, x.2)).unwrap_or(("", ""));
+        o.push_str(&format!("| `{name}` | {ask} | {ret} |\n"));
+    }
+    o
+}
+
 fn s<'a>(a: &'a Value, keys: &[&str]) -> Option<&'a str> {
     keys.iter().find_map(|k| a.get(*k).and_then(|v| v.as_str())).filter(|v| !v.is_empty())
 }
@@ -241,4 +267,19 @@ pub fn db_schema(index: &repomap_core::Index, url: Option<&str>) -> anyhow::Resu
     };
     repomap_core::db::link_code(index, &mut schema);
     Ok(schema)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_tool_has_readme_docs() {
+        for d in definitions(false) {
+            let name = d["name"].as_str().unwrap();
+            assert!(DOCS.iter().any(|x| x.0 == name), "tool `{name}` has no row in DOCS");
+            assert_eq!(canonical(name), Some(name), "tool `{name}` is not routed");
+        }
+        assert!(markdown().starts_with("Six tools"));
+    }
 }

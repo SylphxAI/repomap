@@ -2,18 +2,18 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.SylphxAI/repomap",
   "title": "repomap",
-  "description": "Codebase map for AI agents: code graph, search, call paths, change impact. Local, no API key.",
+  "description": "A map of your codebase for AI agents: code graph, search, call paths and change impact. No API key.",
   "repository": {
     "url": "https://github.com/SylphxAI/repomap",
     "source": "github"
   },
-  "version": "1.2.0",
+  "version": "1.2.1",
   "websiteUrl": "https://sylphxai.github.io/repomap/",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@sylphx/repomap",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "transport": {
         "type": "stdio"
       },

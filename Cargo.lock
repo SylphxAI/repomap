@@ -1039,7 +1039,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "repomap"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "anyhow",
  "dirs",
@@ -1054,7 +1054,7 @@ dependencies = [
 
 [[package]]
 name = "repomap-core"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "anyhow",
  "dirs",
@@ -1079,7 +1079,6 @@ dependencies = [
  "tree-sitter-ruby",
  "tree-sitter-rust",
  "tree-sitter-swift",
- "tree-sitter-tags",
  "tree-sitter-typescript",
 ]
 
@@ -1817,19 +1816,6 @@ checksum = "fe36052155b9dd69ca82b3b8f1b4ccfb2d867125ac1a4db1dd7331829242668c"
 dependencies = [
  "cc",
  "tree-sitter-language",
-]
-
-[[package]]
-name = "tree-sitter-tags"
-version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cf8ad7a542c64d527fa35dd344d980c6e3b86ada979fba7a25fe2f162b988f8"
-dependencies = [
- "memchr",
- "regex",
- "streaming-iterator",
- "thiserror",
- "tree-sitter",
 ]
 
 [[package]]

@@ -3,7 +3,7 @@ layout: home
 hero:
   name: repomap
   text: A map of your codebase, for you and your AI agent.
-  tagline: Code graph, hybrid search, call paths and change impact, with a WebGL graph UI. One Rust binary. Local. No API key. MIT.
+  tagline: "A map of your codebase for AI agents: code graph, search, call paths and change impact. No API key."
   actions:
     - theme: brand
       text: npx -y @sylphx/repomap setup

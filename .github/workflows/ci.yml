@@ -77,6 +77,11 @@ jobs:
           echo "{\"tool_name\":\"Grep\",\"tool_input\":{\"pattern\":\"verifyToken\"},\"cwd\":\"$PWD/crates/repomap-core/tests/fixture\"}" | $B hook | tee /tmp/hook.out
           grep -q 'additionalContext' /tmp/hook.out && grep -q 'SessionStore.refresh' /tmp/hook.out
           REPOMAP_BIN=$PWD/$B node packages/repomap/bin/repomap.js version
+      - name: Public copy matches brand.json and the tool registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOMAP_BIN: target/release/repomap
+        run: bun scripts/copy.ts --check --github
       - name: Docs build
         run: bun run docs:build
 
