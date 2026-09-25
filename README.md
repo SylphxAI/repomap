@@ -135,7 +135,14 @@ Import resolution understands relative paths, `@/` aliases, npm workspace packag
 
 The index is built in parallel and cached per file, so after the first run only changed files are parsed again. The MCP server keeps the graph in memory and refreshes it when files change.
 
-On a laptop-class machine, a few hundred files index in well under a second, and queries answer in milliseconds. Full numbers for large repositories (VS Code, Kubernetes, Django, rust-analyzer), measured on GitHub-hosted runners with the published method, are on the **[benchmarks page](https://sylphxai.github.io/repomap/benchmarks)**.
+Measured on a 4 vCPU GitHub-hosted runner ([method and full table](https://sylphxai.github.io/repomap/benchmarks)):
+
+| Repository | Code files | Cold index | Warm index | search p50 | impact p50 |
+|---|---:|---:|---:|---:|---:|
+| kubernetes | 11,710 | 11.2 s | 1.9 s | 57 ms | 5 ms |
+| vscode | 6,125 | 8.0 s | 1.3 s | 7 ms | 6 ms |
+| django | 2,271 | 2.2 s | 0.4 s | 21 ms | 1 ms |
+| rust-analyzer | 1,512 | 1.8 s | 0.3 s | 4 ms | 2 ms |
 
 ## How it compares
 
