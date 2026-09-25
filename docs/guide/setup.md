@@ -18,6 +18,10 @@
 
 On Windows the command is `cmd /c npx …`.
 
+## Claude Code hook (optional)
+
+`setup --claude-hooks` also installs a PreToolUse hook. Whenever Claude Code runs `Grep` or `Glob`, the hook adds where the symbol is defined and who calls it. See [Claude Code hook](/guide/claude-code-hook).
+
 ## Which repository is indexed
 
 In order of precedence:

@@ -1,6 +1,6 @@
 {
   "name": "@sylphx/locus",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Locus is now repomap. This package is a thin alias of @sylphx/repomap (same MCP server and CLI).",
   "bin": {
     "locus": "bin/locus.js"
@@ -13,7 +13,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@sylphx/repomap": "1.0.1"
+    "@sylphx/repomap": "1.1.0"
   },
   "keywords": [
     "repomap",

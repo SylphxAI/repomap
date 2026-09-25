@@ -1,3 +1,4 @@
+mod hook;
 mod mcp;
 mod serve;
 mod setup;
@@ -18,6 +19,7 @@ Usage: repomap <command> [options]
 
 Commands:
   setup                 Add repomap to Claude Code, Codex, Cursor, VS Code, Claude Desktop, Windsurf
+                        (--claude-hooks also enriches Claude Code's Grep/Glob; --remove undoes)
   serve [dir]           Open the interactive graph UI in your browser (alias: ui)
   export [dir]          Write a self-contained HTML map (--out repomap.html) or --json
   map [dir]             Modules, central files, key symbols (--focus <dir> to zoom in)
@@ -121,6 +123,10 @@ fn run() -> Result<()> {
             Ok(())
         }
         "setup" => setup::run(&args.flags),
+        "hook" => {
+            hook::run();
+            Ok(())
+        }
         "serve" | "ui" => serve::run(
             &args.root_or_pos(0),
             args.flag("host").unwrap_or("127.0.0.1"),

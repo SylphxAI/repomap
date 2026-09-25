@@ -11,3 +11,4 @@ docs/.vitepress/cache/
 docs/.vitepress/dist/
 repomap.html
 repomap.json
+docs/public/demo/

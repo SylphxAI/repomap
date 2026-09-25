@@ -552,6 +552,8 @@ type Alias = string;
             ("a.cs", Lang::CSharp, "using System.IO;\nclass A : B { void Run() { Go(); } }"),
             ("a.rb", Lang::Ruby, "require 'x'\nclass A < B\n  def run\n    go(1)\n  end\nend\n"),
             ("a.php", Lang::Php, "<?php\nuse App\\Models\\User;\nclass A extends B { function run() { go(); } }"),
+            ("a.kt", Lang::Kotlin, "import a.b.C\n\nclass A(val r: R) : B() {\n    fun run() {\n        r.go()\n        help()\n    }\n}\n\nfun help() = println(1)\n"),
+            ("a.swift", Lang::Swift, "import Foundation\nclass A: B {\n    func run() { r.go(); help() }\n}\nfunc help() { print(1) }\n"),
             ("a.js", Lang::JavaScript, "const x = require('./x');\nclass A extends B { run() { go(); } }\n"),
         ];
         for (path, lang, src) in cases {

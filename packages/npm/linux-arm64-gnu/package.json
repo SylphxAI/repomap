@@ -1,6 +1,6 @@
 {
   "name": "@sylphx/repomap-linux-arm64-gnu",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "repomap native binary for linux-arm64-gnu",
   "os": [
     "linux"

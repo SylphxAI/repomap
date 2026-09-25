@@ -21,7 +21,7 @@ interface Data {
   web?: string | null;
   root?: string;
   stats: { files: number; code_files: number; symbols: number; call_edges: number; file_edges: number; index_ms: number };
-  communities: { id: number; name: string; size: number }[];
+  communities: { id: number; name: string; size: number; kind?: string }[];
   nodes: NodeData[];
   edges: [number, number, number, number][];
 }
@@ -35,8 +35,8 @@ declare global {
 const LIVE = !window.__REPOMAP__;
 const PALETTE = [
   "#8aa4ff", "#ff7eb6", "#42d6a4", "#ffb454", "#b18cff", "#4dd0e1", "#ff8a65", "#a5d86b",
-  "#f06292", "#64b5f6", "#ffd54f", "#81c784", "#ce7de0", "#4db6ac", "#e57373", "#c5e1a5",
-  "#7986cb", "#ffb74d", "#4fc3f7", "#dce775", "#f48fb1", "#80cbc4", "#b39ddb", "#90caf9",
+  "#ffd54f", "#64b5f6", "#e57373", "#81c784", "#ce7de0", "#4db6ac", "#f4a261", "#90caf9",
+  "#c5e1a5", "#b39ddb", "#ffcc80", "#80deea", "#f48fb1", "#aed581", "#9fa8da", "#ffe082",
 ];
 const OTHER = "#59627a";
 const DIM = "#171b25";
@@ -49,7 +49,12 @@ const fmt = (n: number) => n.toLocaleString("en-US");
 const base = (p: string) => p.slice(p.lastIndexOf("/") + 1);
 const dir = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
 
+const AUX: Record<string, string> = { tests: "#5d6679", examples: "#7b6f5c", docs: "#5c7466", benchmarks: "#6c5f7a" };
+const KIND = new Map<number, string>();
+
 function commColor(c: number) {
+  const k = KIND.get(c);
+  if (k && k !== "core") return AUX[k] ?? OTHER;
   return c < PALETTE.length ? PALETTE[c] : OTHER;
 }
 
@@ -72,6 +77,10 @@ async function load(): Promise<Data> {
 
 function mount(data: Data) {
   const n = data.nodes.length;
+  for (const c of data.communities) KIND.set(c.id, c.kind ?? "core");
+  const isAux = (d: NodeData) => d.t || (KIND.get(d.c) ?? "core") !== "core";
+  const coreComms = data.communities.filter((c) => (c.kind ?? "core") === "core");
+  const auxComms = data.communities.filter((c) => (c.kind ?? "core") !== "core");
   const graph = new Graph({ type: "directed", multi: false, allowSelfLoops: false });
   const rand = rng(42);
 
@@ -103,10 +112,11 @@ function mount(data: Data) {
     const key = `${a}>${b}`;
     if (graph.hasEdge(key)) continue;
     const w = imp + 0.5 * calls;
-    const same = data.nodes[a].c === data.nodes[b].c;
+    const aux = isAux(data.nodes[a]) || isAux(data.nodes[b]);
+    const same = !aux && data.nodes[a].c === data.nodes[b].c;
     graph.addDirectedEdgeWithKey(key, String(a), String(b), {
       // Layout weight: pull modules together, let modules drift apart.
-      weight: same ? w * 4 : w * 0.25,
+      weight: aux ? w * 0.5 : same ? w * 4 : w * 0.25,
       size: Math.min(1.6, 0.25 + Math.log1p(w) * 0.25),
       color: mix(commColor(data.nodes[a].c), same ? 0.3 : 0.1),
     });
@@ -122,7 +132,8 @@ function mount(data: Data) {
     focusComm: null as number | null,
     hiddenComms: new Set<number>(),
     edges: data.edges.length < 60000,
-    tests: true,
+    // Big repos open on the core modules; tests/examples/docs are one click away.
+    tests: data.nodes.filter((d) => !isAux(d)).length < 40,
     labels: true,
   };
 
@@ -147,7 +158,7 @@ function mount(data: Data) {
     nodeReducer: (node, attrs) => {
       const d = data.nodes[+node];
       const res: Record<string, unknown> = { ...attrs };
-      if ((!state.tests && d.t) || state.hiddenComms.has(d.c)) {
+      if ((!state.tests && isAux(d)) || state.hiddenComms.has(d.c)) {
         res.hidden = true;
         return res;
       }
@@ -189,7 +200,7 @@ function mount(data: Data) {
       const res: Record<string, unknown> = { ...attrs };
       const [s, t] = graph.extremities(edge);
       const ds = data.nodes[+s], dt = data.nodes[+t];
-      if ((!state.tests && (ds.t || dt.t)) || state.hiddenComms.has(ds.c) || state.hiddenComms.has(dt.c)) {
+      if ((!state.tests && (isAux(ds) || isAux(dt))) || state.hiddenComms.has(ds.c) || state.hiddenComms.has(dt.c)) {
         res.hidden = true;
         return res;
       }
@@ -250,14 +261,13 @@ function mount(data: Data) {
   runLayout(Math.min(20000, 3500 + n * 1.2));
 
   // ---- header
-  const legendHTML = data.communities
-    .slice(0, 60)
-    .map(
-      (c) => `<div class="mod" data-c="${c.id}" title="${esc(c.name)}"><span class="dot" style="color:${commColor(c.id)};background:${commColor(c.id)}"></span><span class="name">${esc(c.name)}</span><span class="count">${c.size}</span></div>`,
-    )
-    .join("");
+  const modRow = (c: { id: number; name: string; size: number }) =>
+    `<div class="mod" data-c="${c.id}" title="${esc(c.name)}"><span class="dot" style="color:${commColor(c.id)};background:${commColor(c.id)}"></span><span class="name">${esc(c.name)}</span><span class="count">${c.size}</span></div>`;
+  const legendHTML =
+    coreComms.slice(0, 60).map(modRow).join("") +
+    (auxComms.length ? `<div class="mod-sep">Tests, examples &amp; docs</div>` + auxComms.map(modRow).join("") : "");
   $("#brand .title").innerHTML = `repomap <span>/ ${esc(data.repo)}</span>`;
-  $("#brand .stats").textContent = `${fmt(data.stats.code_files)} files · ${fmt(data.stats.symbols)} symbols · ${fmt(data.stats.call_edges)} calls · ${data.communities.length} modules`;
+  $("#brand .stats").textContent = `${fmt(data.stats.code_files)} files · ${fmt(data.stats.symbols)} symbols · ${fmt(data.stats.call_edges)} calls · ${coreComms.length} modules`;
   $("#legend .list").innerHTML = legendHTML;
   $("#legend .list").addEventListener("click", (e) => {
     const el = (e.target as HTMLElement).closest(".mod") as HTMLElement | null;
@@ -332,6 +342,7 @@ function mount(data: Data) {
     state.mode = "none";
     state.depth.clear();
     panel.classList.remove("open");
+    document.body.classList.remove("panel-open");
     history.replaceState(null, "", location.pathname + location.search);
     renderer.refresh({ skipIndexation: true });
   }
@@ -345,7 +356,37 @@ function mount(data: Data) {
     renderPanel(node, symLine);
     if (!keepCamera) {
       const p = renderer.getNodeDisplayData(node);
-      if (p) renderer.getCamera().animate({ x: p.x, y: p.y, ratio: Math.min(renderer.getCamera().ratio, 0.3) }, { duration: 600 });
+      if (p) {
+        // Frame the file with its direct neighbours; never zoom past what that needs.
+        const around = [node, ...graph.neighbors(node)];
+        let x0 = p.x, y0 = p.y, x1 = p.x, y1 = p.y;
+        for (const nd of around) {
+          const q = renderer.getNodeDisplayData(nd);
+          if (!q) continue;
+          x0 = Math.min(x0, q.x); y0 = Math.min(y0, q.y); x1 = Math.max(x1, q.x); y1 = Math.max(y1, q.y);
+        }
+        const extent = Math.max(x1 - x0, y1 - y0) * 1.5;
+        const cur = renderer.getCamera().ratio;
+        const ratio = Math.min(cur, Math.max(0.12, Math.min(1, extent)));
+        const { width: vw, height: vh } = renderer.getDimensions();
+        const covered = window.innerWidth > 900 ? Math.min(416, vw * 0.45) : 0;
+        // Wide neighbourhoods: keep the overview, only nudge the file out from under the panel.
+        if (ratio > 0.7 && cur >= 0.95) {
+          const at = renderer.framedGraphToViewport(renderer.getNodeDisplayData(node)!);
+          if (at.x > vw - covered - 40) {
+            const a = renderer.viewportToFramedGraph({ x: at.x, y: vh / 2 });
+            const b = renderer.viewportToFramedGraph({ x: (vw - covered) / 2, y: vh / 2 });
+            const c = renderer.getCamera().getState();
+            renderer.getCamera().animate({ x: c.x + (a.x - b.x) }, { duration: 500 });
+          }
+          return renderer.refresh({ skipIndexation: true });
+        }
+        // Centre the file in the part of the canvas the panel does not cover.
+        const a = renderer.viewportToFramedGraph({ x: vw / 2, y: vh / 2 });
+        const b = renderer.viewportToFramedGraph({ x: (vw - covered) / 2, y: vh / 2 });
+        const dx = (a.x - b.x) * (ratio / cur);
+        renderer.getCamera().animate({ x: p.x + dx, y: p.y, ratio }, { duration: 600 });
+      }
     }
     renderer.refresh({ skipIndexation: true });
   }
@@ -396,6 +437,7 @@ function mount(data: Data) {
         <section><h3><span>Depends on</span><span>${outs.length}</span></h3>${outs.slice(0, 200).map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">No internal dependencies</div>'}</section>
       </div>`;
     panel.classList.add("open");
+    document.body.classList.add("panel-open");
     panel.querySelector(".close")!.addEventListener("click", clearSelection);
     panel.querySelectorAll<HTMLElement>("[data-act]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.act as "impact" | "deps")));
     if (symLine !== undefined) {

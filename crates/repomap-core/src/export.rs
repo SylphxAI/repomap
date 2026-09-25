@@ -57,7 +57,7 @@ impl Index {
         let communities: Vec<Value> = self
             .communities
             .iter()
-            .map(|c| json!({ "id": c.id, "name": c.name, "size": c.files.len() }))
+            .map(|c| json!({ "id": c.id, "name": c.name, "size": c.files.len(), "kind": c.kind }))
             .collect();
         json!({
             "version": version,

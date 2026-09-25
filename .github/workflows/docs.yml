@@ -8,6 +8,9 @@ on:
       - 'package.json'
       - 'bun.lock'
       - '.github/workflows/docs.yml'
+      - 'crates/**'
+      - 'ui/**'
+      - 'scripts/demo.sh'
   workflow_dispatch:
 
 permissions:
@@ -28,6 +31,10 @@ jobs:
         with:
           bun-version: '1.4.0'
       - run: bun install --frozen-lockfile
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Live demo maps (built from this commit)
+        run: cargo build --release --locked -p repomap && bash scripts/demo.sh target/release/repomap docs/public/demo
       - run: bun run docs:build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4

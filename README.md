@@ -12,11 +12,11 @@ One Rust binary. Local. No API key. MIT.
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.SylphxAI%2Frepomap-42d6a4)](https://registry.modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-ffb454)](LICENSE)
 
-[Docs](https://sylphxai.github.io/repomap/) · [Quickstart](#quickstart) · [Tools](#what-your-agent-gets) · [Graph UI](#the-graph-ui) · [Benchmarks](https://sylphxai.github.io/repomap/benchmarks) · [Compare](#how-it-compares)
+[**Live demo**](https://sylphxai.github.io/repomap/demo) · [Docs](https://sylphxai.github.io/repomap/) · [Quickstart](#quickstart) · [Tools](#what-your-agent-gets) · [Graph UI](#the-graph-ui) · [Benchmarks](https://sylphxai.github.io/repomap/benchmarks) · [Compare](#how-it-compares)
 
-<img src="docs/public/img/hero-excalidraw.webp" alt="repomap graph UI showing the excalidraw repository: files clustered into modules, sized by centrality" width="100%">
+<img src="docs/public/img/demo.gif" alt="repomap demo: the map of excalidraw, searching restoreElements, its code and callers, then the impact of changing it" width="100%">
 
-<sub>excalidraw, 687 files, indexed in under half a second. Every dot is a file, colours are modules found from the dependency graph, and size is PageRank centrality.</sub>
+<sub>The real UI on excalidraw (687 files, indexed in under half a second): search, a symbol's code and callers, then the blast radius of a change. <a href="https://sylphxai.github.io/repomap/demo">Try it in your browser</a>, no install needed.</sub>
 
 </div>
 
@@ -27,7 +27,7 @@ npx -y @sylphx/repomap setup     # add repomap to Claude Code, Codex, Cursor, VS
 npx -y @sylphx/repomap serve     # open the graph UI for the current repo
 ```
 
-That's it. `setup` detects the clients you have, writes their MCP config, and prints every change it made. Run it again and nothing changes. Then ask your agent: *"Use repomap to map this repo."*
+That's it. Add `--claude-hooks` to also [enrich Claude Code's Grep and Glob](#claude-code-hook). `setup` detects the clients you have, writes their MCP config, and prints every change it made. Run it again and nothing changes. Then ask your agent: *"Use repomap to map this repo."*
 
 <details>
 <summary>Manual MCP config</summary>
@@ -119,15 +119,30 @@ npx -y @sylphx/repomap export           # repomap.html: one self-contained file 
 </table>
 
 - WebGL rendering (Sigma.js) that stays smooth with tens of thousands of files and edges
-- Modules coloured and clustered by their real dependencies, file size by PageRank
+- Modules coloured and clustered by their real dependencies, file size by PageRank; tests, examples and docs are muted and one click away
 - <kbd>/</kbd> searches files, symbols and code; <kbd>d</kbd> shows dependencies; <kbd>f</kbd> fits the view
 - Click a module to focus it, <kbd>Shift</kbd>-click to hide it; toggle tests, edges and labels
 - `export` writes one HTML file with deep links (`#path/to/file`) and GitHub links pinned to your commit. It's a good fit for a README, a wiki or a design review.
 
+## Claude Code hook
+
+```bash
+npx -y @sylphx/repomap setup --claude-hooks
+```
+
+This is opt-in and safe to run again; `setup --remove` takes it out. It installs a PreToolUse hook: whenever Claude Code runs `Grep` or `Glob`, repomap adds where the symbol is defined, who calls it and which module it belongs to. It answers in tens of milliseconds and never blocks the search.
+
+```text
+repomap (code map) for this search:
+- function `compose` defined at src/compose.ts:15 (module router); 3 callers: Hono.route (src/hono-base.ts:228), Hono.#dispatch (src/hono-base.ts:452), every (src/middleware/combine/index.ts:102)
+```
+
 ## Languages
 
-Parsed with tree-sitter for symbols, calls, imports and inheritance: **TypeScript, TSX, JavaScript, Python, Go, Rust, Java, C, C++, C#, Ruby, PHP.**
-Search also covers Markdown, YAML, TOML, JSON, SQL, shell, Protobuf, GraphQL, HTML/CSS, Vue, Svelte, Kotlin, Swift, Scala and more.
+Parsed with tree-sitter for symbols, calls, imports and inheritance: **TypeScript, TSX, JavaScript, Python, Go, Rust, Java, Kotlin, Swift, C, C++, C#, Ruby, PHP.**
+Search also covers Markdown, YAML, TOML, JSON, SQL, shell, Protobuf, GraphQL, HTML/CSS, Vue, Svelte, Scala and more.
+
+Modules are found among your core code only. Tests, examples, docs and benchmarks are grouped separately, so they never name or blur a module.
 
 Import resolution understands relative paths, `@/` aliases, npm workspace packages, Python packages and relative imports, Go modules, Rust `mod`/`use`/workspace crates, Java/PHP namespaces, C/C++ includes and Ruby `require`. `.gitignore` is respected, and so is `.repomapignore`.
 
@@ -156,6 +171,7 @@ Measured on a 4 vCPU GitHub-hosted runner ([method and full table](https://sylph
 | Call path between two symbols | ✅ | ✅ | — | — | — |
 | Keyword + symbol search | ✅ BM25 + names | ✅ | ✅ symbols | Semantic (vectors) | — |
 | Interactive graph UI | ✅ local + static export | ✅ | — | — | — |
+| Claude Code Grep/Glob hook | ✅ opt-in | ✅ | — | — | — |
 | Module detection | ✅ Louvain | ✅ | — | — | — |
 | Edits code | — (read-only) | — | ✅ | — | ✅ |
 | Engine | Rust | TypeScript | Python | TypeScript | Python |
@@ -165,7 +181,7 @@ Pick Serena if you want LSP-precise refactoring edits, and claude-context if you
 ## CLI
 
 ```text
-repomap setup [--client cursor,codex] [--dry-run] [--remove]
+repomap setup [--client cursor,codex] [--claude-hooks] [--dry-run] [--remove]
 repomap serve [dir] [--port 7878] [--no-open]
 repomap export [dir] [--out repomap.html] [--json]
 repomap map [dir-to-focus] [-C root] [--json]

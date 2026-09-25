@@ -9,8 +9,8 @@ hero:
       text: npx -y @sylphx/repomap setup
       link: /guide/quickstart
     - theme: alt
-      text: Open the graph UI
-      link: /guide/ui
+      text: Live demo
+      link: /demo
     - theme: alt
       text: GitHub
       link: https://github.com/SylphxAI/repomap
@@ -36,6 +36,6 @@ features:
 ---
 
 <div class="hero-shot">
-  <img src="/img/hero-excalidraw.webp" alt="repomap graph UI on the excalidraw repository">
-  <p>excalidraw: 687 files, 5,001 symbols, 9,639 resolved calls, indexed in under half a second.</p>
+  <img src="/img/demo.gif" alt="repomap demo: the map of excalidraw, search, a symbol's code and callers, then the impact of changing it">
+  <p>excalidraw: 687 files, 5,001 symbols and 9,639 resolved calls, indexed in under half a second. <a href="/repomap/demo">Try it live →</a></p>
 </div>

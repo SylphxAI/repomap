@@ -45,7 +45,7 @@ pub fn link(index: &mut Index, facts: &[&FileFacts]) {
         let base = entry.sym_start;
         let imported: HashSet<u32> = imports[i].iter().copied().collect();
         let dir = parent_dir(&entry.path);
-        let same_package = matches!(entry.lang, Some(Lang::Go) | Some(Lang::Java) | Some(Lang::CSharp) | Some(Lang::Rust));
+        let same_package = matches!(entry.lang, Some(Lang::Go) | Some(Lang::Java) | Some(Lang::CSharp) | Some(Lang::Rust) | Some(Lang::Kotlin) | Some(Lang::Swift));
         let mut seen: HashSet<(Option<u32>, u32)> = HashSet::new();
         for c in &f.calls {
             let Some(cands) = index.by_name.get(&c.name) else { continue };
@@ -347,10 +347,10 @@ impl<'a> Resolver<'a> {
             Lang::Python => self.resolve_python(from, dir, spec).into_iter().collect(),
             Lang::Go => self.resolve_go(spec),
             Lang::Rust => self.resolve_rust(path, spec).into_iter().collect(),
-            Lang::Java | Lang::Php => self.resolve_qualified(dir, spec),
+            Lang::Java | Lang::Php | Lang::Kotlin => self.resolve_qualified(dir, spec),
             Lang::C | Lang::Cpp => self.resolve_include(dir, spec).into_iter().collect(),
             Lang::Ruby => self.resolve_ruby(dir, spec).into_iter().collect(),
-            Lang::CSharp => Vec::new(),
+            Lang::CSharp | Lang::Swift => Vec::new(),
         }
     }
 
@@ -764,8 +764,9 @@ pub fn louvain(n: usize, edges: &[(u32, u32, f32)]) -> Vec<u32> {
 }
 
 fn communities(index: &Index) -> (Vec<u32>, Vec<Community>) {
+    use crate::index::Role;
     let n = index.files.len();
-    let code: Vec<u32> = index.code_files().map(|(i, _)| i).collect();
+    let code: Vec<u32> = index.code_files().filter(|(_, f)| f.role == Role::Core).map(|(i, _)| i).collect();
     let mut local: HashMap<u32, u32> = HashMap::new();
     for (k, &f) in code.iter().enumerate() {
         local.insert(f, k as u32);
@@ -802,7 +803,6 @@ fn communities(index: &Index) -> (Vec<u32>, Vec<Community>) {
             small.extend(files.iter().copied());
         }
     }
-    // Directory vote for small groups.
     let mut dir_votes: HashMap<&str, HashMap<u32, u32>> = HashMap::new();
     for (&f, &c) in &assign {
         *dir_votes.entry(parent_dir(&index.files[f as usize].path)).or_default().entry(c).or_insert(0) += 1;
@@ -818,68 +818,101 @@ fn communities(index: &Index) -> (Vec<u32>, Vec<Community>) {
                 continue;
             }
         }
+        // Otherwise join the module it depends on (or is used by) most.
+        let mut w: HashMap<u32, f32> = HashMap::new();
+        for &e in index.file_out[f as usize].iter().chain(index.file_in[f as usize].iter()) {
+            let e = &index.file_edges[e as usize];
+            let other = if e.from == f { e.to } else { e.from };
+            if let Some(&c) = assign.get(&other) {
+                *w.entry(c).or_insert(0.0) += e.weight();
+            }
+        }
+        if let Some((&c, _)) = w.iter().max_by(|a, b| a.1.partial_cmp(b.1).unwrap().then(b.0.cmp(a.0))) {
+            big[c as usize].push(f);
+            assign.insert(f, c);
+            continue;
+        }
         let top: String = dir.split('/').take(2).collect::<Vec<_>>().join("/");
         dir_groups.entry(top).or_default().push(f);
     }
+    // Unconnected stragglers: real groups if they are a directory's worth,
+    // otherwise one "other" bucket.
     let mut dg: Vec<(String, Vec<u32>)> = dir_groups.into_iter().collect();
     dg.sort();
+    let mut other: Vec<u32> = Vec::new();
     for (_, files) in dg {
-        big.push(files);
+        if files.len() >= 3 {
+            big.push(files);
+        } else {
+            other.extend(files);
+        }
     }
     big.sort_by(|a, b| b.len().cmp(&a.len()).then(a.cmp(b)));
 
     let mut community = vec![u32::MAX; n];
     let mut out = Vec::new();
     let mut used: HashSet<String> = HashSet::new();
-    for (id, files) in big.into_iter().enumerate() {
+    let other_group = if other.is_empty() { None } else { Some(other) };
+    for files in big {
+        let id = out.len() as u32;
         for &f in &files {
-            community[f as usize] = id as u32;
+            community[f as usize] = id;
         }
-        let mut name = name_for(index, &files);
-        let mut generic = is_generic_dir(name.rsplit('/').next().unwrap_or(&name));
-        if generic && name.contains('/') {
-            name = parent_dir(&name).to_string();
-            generic = is_generic_dir(name.rsplit('/').next().unwrap_or(&name));
+        let name = unique_name(index, &files, &mut used);
+        out.push(Community { id, name, files, kind: "core".into() });
+    }
+    if let Some(files) = other_group {
+        let id = out.len() as u32;
+        for &f in &files {
+            community[f as usize] = id;
         }
-        if generic || used.contains(&name) {
-            let top = files
-                .iter()
-                .filter(|f| !index.files[**f as usize].is_test)
-                .max_by(|a, b| index.file_rank[**a as usize].partial_cmp(&index.file_rank[**b as usize]).unwrap())
-                .or_else(|| files.first())
-                .map(|f| {
-                    let p = &index.files[*f as usize].path;
-                    let stem = strip_ext(p.rsplit('/').next().unwrap_or(p));
-                    if matches!(stem, "index" | "mod" | "lib" | "main" | "__init__") {
-                        let mut d = parent_dir(p);
-                        while is_generic_dir(d.rsplit('/').next().unwrap_or(d)) && d.contains('/') {
-                            d = parent_dir(d);
-                        }
-                        d.rsplit('/').next().unwrap_or(stem).to_string()
-                    } else {
-                        stem.to_string()
-                    }
-                })
-                .unwrap_or_default();
-            let candidate = format!("{name} · {top}");
-            name = if used.contains(&candidate) { format!("{candidate} {id}") } else { candidate };
+        let name = if used.contains("other") { "other files".to_string() } else { "other".to_string() };
+        out.push(Community { id, name, files, kind: "core".into() });
+    }
+    // Auxiliary code (tests, examples, docs, benchmarks): one group per role.
+    for role in [Role::Test, Role::Example, Role::Doc, Role::Bench] {
+        let files: Vec<u32> = index.code_files().filter(|(_, f)| f.role == role).map(|(i, _)| i).collect();
+        if files.is_empty() {
+            continue;
         }
-        used.insert(name.clone());
-        out.push(Community { id: id as u32, name, files });
+        let id = out.len() as u32;
+        for &f in &files {
+            community[f as usize] = id;
+        }
+        out.push(Community { id, name: role.label().into(), files, kind: role.label().into() });
     }
     (community, out)
 }
 
 fn is_generic_dir(d: &str) -> bool {
-    matches!(d, "" | "src" | "lib" | "app" | "pkg" | "internal" | "source" | "packages" | "crates" | "(root)" | "tests" | "test")
+    // Kotlin Multiplatform source sets: commonMain, jvmMain, commonJvmAndroid.
+    if (d.len() > 4 && d.ends_with("Main") && d.starts_with(|c: char| c.is_ascii_lowercase())) || d == "commonJvmAndroid" {
+        return true;
+    }
+    matches!(
+        d,
+        "" | "src" | "lib" | "pkg" | "internal" | "source" | "sources" | "packages" | "crates" | "(root)" | "main" | "java" | "kotlin" | "scala" | "go" | "python"
+    )
 }
 
-fn name_for(index: &Index, all: &[u32]) -> String {
-    let non_test: Vec<u32> = all.iter().copied().filter(|f| !index.files[*f as usize].is_test).collect();
-    let files: &[u32] = if non_test.is_empty() { all } else { &non_test };
-    // Rank-weighted directory coverage: central files decide the name.
-    let weight = |f: u32| 0.05 + index.file_rank.get(f as usize).copied().unwrap_or(0.0);
-    let total: f32 = files.iter().map(|&f| weight(f)).sum();
+/// `tokio/src/runtime` -> `tokio/runtime`, `src/flask` -> `flask`, `src` -> `` (empty).
+pub fn pretty_dir(dir: &str) -> String {
+    let segs: Vec<&str> = dir.split('/').filter(|s| !s.is_empty() && !is_generic_dir(s)).collect();
+    let s = segs.join("/");
+    if segs.len() > 3 {
+        format!("…/{}", segs[segs.len() - 3..].join("/"))
+    } else {
+        s
+    }
+}
+
+fn weight(index: &Index, f: u32) -> f32 {
+    0.05 + index.file_rank.get(f as usize).copied().unwrap_or(0.0)
+}
+
+/// Rank-weighted share of `files` under each directory prefix.
+fn dir_coverage(index: &Index, files: &[u32]) -> (HashMap<String, f32>, f32) {
+    let total: f32 = files.iter().map(|&f| weight(index, f)).sum();
     let mut counts: HashMap<String, f32> = HashMap::new();
     for &f in files {
         let dir = parent_dir(&index.files[f as usize].path);
@@ -889,32 +922,64 @@ fn name_for(index: &Index, all: &[u32]) -> String {
                 acc.push('/');
             }
             acc.push_str(seg);
-            *counts.entry(acc.clone()).or_insert(0.0) += weight(f);
+            *counts.entry(acc.clone()).or_insert(0.0) += weight(index, f);
         }
     }
-    let best = counts
+    (counts, total)
+}
+
+fn deepest_covering(counts: &HashMap<String, f32>, min: f32, under: Option<&str>) -> Option<String> {
+    counts
         .iter()
-        .filter(|(_, c)| **c >= total * 0.5)
+        .filter(|(d, c)| **c >= min && under.map_or(true, |u| d.starts_with(&format!("{u}/"))))
         .max_by(|(da, ca), (db, cb)| {
-            (da.matches('/').count(), **ca).partial_cmp(&(db.matches('/').count(), **cb)).unwrap_or(std::cmp::Ordering::Equal).then(db.cmp(da))
-        });
-    match best {
-        Some((d, _)) => d.clone(),
-        None => {
-            let top = files
-                .iter()
-                .max_by(|a, b| index.file_rank[**a as usize].partial_cmp(&index.file_rank[**b as usize]).unwrap())
-                .copied();
-            match top {
-                Some(f) => {
-                    let p = &index.files[f as usize].path;
-                    let d = parent_dir(p);
-                    if d.is_empty() { "(root)".into() } else { d.to_string() }
-                }
-                None => "(root)".into(),
+            (da.matches('/').count(), **ca)
+                .partial_cmp(&(db.matches('/').count(), **cb))
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(db.cmp(da))
+        })
+        .map(|(d, _)| d.clone())
+}
+
+/// Name a module after its dominant directory (weighted by centrality); on a
+/// clash, after the sub-directory that sets it apart, then its central file.
+fn unique_name(index: &Index, files: &[u32], used: &mut HashSet<String>) -> String {
+    let (counts, total) = dir_coverage(index, files);
+    let dominant = deepest_covering(&counts, total * 0.5, None);
+    let mut name = dominant.as_deref().map(pretty_dir).unwrap_or_default();
+    if name.is_empty() || used.contains(&name) {
+        if let Some(sub) = deepest_covering(&counts, total * 0.3, dominant.as_deref()) {
+            let p = pretty_dir(&sub);
+            if !p.is_empty() && !used.contains(&p) {
+                name = p;
             }
         }
     }
+    if name.is_empty() || used.contains(&name) {
+        let base = if name.is_empty() { None } else { Some(name.clone()) };
+        let last = base.as_deref().map(|b| b.rsplit('/').next().unwrap_or(b).to_string()).unwrap_or_default();
+        let mut ranked: Vec<u32> = files.to_vec();
+        ranked.sort_by(|a, b| index.file_rank[*b as usize].partial_cmp(&index.file_rank[*a as usize]).unwrap_or(std::cmp::Ordering::Equal));
+        let stem = ranked.iter().find_map(|f| {
+            let p = &index.files[*f as usize].path;
+            let st = strip_ext(p.rsplit('/').next().unwrap_or(p));
+            let st = st.trim_start_matches(|c: char| !c.is_ascii_alphanumeric());
+            (!st.is_empty() && !matches!(st, "index" | "mod" | "lib" | "main" | "__init__" | "types" | "utils") && st != last).then(|| st.to_string())
+        });
+        let stem = stem.unwrap_or_else(|| "misc".into());
+        name = match base {
+            Some(b) => format!("{b} · {stem}"),
+            None => stem,
+        };
+    }
+    let mut candidate = name.clone();
+    let mut k = 2;
+    while used.contains(&candidate) {
+        candidate = format!("{name} {k}");
+        k += 1;
+    }
+    used.insert(candidate.clone());
+    candidate
 }
 
 #[cfg(test)]
@@ -935,6 +1000,13 @@ mod tests {
         assert_eq!(c[0], c[3]);
         assert_eq!(c[4], c[7]);
         assert_ne!(c[0], c[4]);
+    }
+
+    #[test]
+    fn pretty_dirs() {
+        assert_eq!(pretty_dir("tokio/src/runtime"), "tokio/runtime");
+        assert_eq!(pretty_dir("src/flask"), "flask");
+        assert_eq!(pretty_dir("src"), "");
     }
 
     #[test]
