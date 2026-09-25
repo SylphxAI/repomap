@@ -1,8 +1,9 @@
 name: release
 
-# Publishes when packages/repomap/package.json carries a version that is not on
-# npm yet: native binaries -> @sylphx/repomap -> aliases -> GitHub release ->
-# MCP Registry. Bump with `bun scripts/set-version.ts X.Y.Z` in a PR.
+# Publishes when packages/repomap/package.json carries a version that is not
+# on npm yet, through the shared mcp-kit release workflow. Bump with
+# `bun scripts/set-version.ts X.Y.Z` in a PR. npm trusted publishing trusts
+# this file (SylphxAI/repomap, release.yml).
 
 on:
   push:
@@ -17,257 +18,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      version: ${{ steps.v.outputs.version }}
-      publish: ${{ steps.v.outputs.publish }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: v
-        run: |
-          V=$(node -p "require('./packages/repomap/package.json').version")
-          echo "version=$V" >> "$GITHUB_OUTPUT"
-          if npm view "@sylphx/repomap@$V" version >/dev/null 2>&1; then
-            echo "publish=false" >> "$GITHUB_OUTPUT"; echo "@sylphx/repomap@$V already published"
-          else
-            echo "publish=true" >> "$GITHUB_OUTPUT"; echo "will publish $V"
-          fi
-
-  build:
-    needs: check
-    if: needs.check.outputs.publish == 'true'
-    name: build ${{ matrix.key }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
-    strategy:
-      fail-fast: true
-      matrix:
-        include:
-          - { key: darwin-arm64, os: macos-latest, target: aarch64-apple-darwin, bin: repomap }
-          - { key: darwin-x64, os: macos-latest, target: x86_64-apple-darwin, bin: repomap }
-          - { key: linux-x64-gnu, os: ubuntu-latest, target: x86_64-unknown-linux-gnu, zig: '2.17', bin: repomap }
-          - { key: linux-arm64-gnu, os: ubuntu-latest, target: aarch64-unknown-linux-gnu, zig: '2.17', bin: repomap }
-          - { key: win32-x64-msvc, os: windows-latest, target: x86_64-pc-windows-msvc, bin: repomap.exe }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.target }}
-      - if: matrix.zig
-        uses: mlugg/setup-zig@v2
-        with:
-          version: 0.14.1
-      - if: matrix.zig
-        run: cargo install cargo-zigbuild --version 0.23.0 --locked
-      - name: Build
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -n "${{ matrix.zig }}" ]; then
-            cargo zigbuild --release --locked -p repomap --target ${{ matrix.target }}.${{ matrix.zig }}
-          else
-            cargo build --release --locked -p repomap --target ${{ matrix.target }}
-          fi
-          mkdir -p out
-          cp target/${{ matrix.target }}/release/${{ matrix.bin }} out/
-          ls -la out
-      - name: Run it (native targets)
-        if: matrix.key != 'linux-arm64-gnu' && matrix.key != 'darwin-x64'
-        shell: bash
-        run: ./out/${{ matrix.bin }} version
-      - uses: actions/upload-artifact@v4
-        with:
-          name: native-${{ matrix.key }}
-          path: out/${{ matrix.bin }}
-          if-no-files-found: error
-          retention-days: 7
-
-  publish:
-    needs: [check, build]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+  release:
+    uses: SylphxAI/mcp-kit/.github/workflows/release.yml@v0
     permissions:
       contents: write
       id-token: write
-    env:
-      V: ${{ needs.check.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      # Trusted publishing (OIDC) needs npm >= 11.5.1; no long-lived token is used.
-      - run: npm install -g npm@^11.5.1 && npm --version
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: '1.4.0'
-      - run: bun scripts/check-version.ts
-      - uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: Stage natives
-        run: |
-          set -euo pipefail
-          for key in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu win32-x64-msvc; do
-            src=$(find artifacts/native-$key -type f | head -1)
-            test -s "$src"
-            cp "$src" packages/npm/$key/
-            chmod +x packages/npm/$key/*
-          done
-          cp README.md LICENSE packages/repomap/
-      - name: Publish to npm (trusted publishing, OIDC)
-        run: |
-          set -euo pipefail
-          pub() {
-            local dir=$1 name
-            name=$(node -p "require('./$dir/package.json').name")
-            if npm view "$name@$V" version >/dev/null 2>&1; then echo "= $name@$V already live"; return; fi
-            # Each package trusts SylphxAI/repomap .github/workflows/release.yml;
-            # npm exchanges the job's OIDC token and adds provenance automatically.
-            (cd "$dir" && npm publish --access public)
-            echo "+ $name@$V published"
-          }
-          for key in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu win32-x64-msvc; do pub packages/npm/$key; done
-          pub packages/repomap
-          for a in spine locus coderag; do pub packages/aliases/$a; done
-          # The registry can take minutes to serve new versions; wait once for all.
-          for dir in packages/npm/* packages/repomap packages/aliases/*; do
-            name=$(node -p "require('./$dir/package.json').name")
-            for i in $(seq 1 120); do npm view "$name@$V" version >/dev/null 2>&1 && break; sleep 5; done
-            npm view "$name@$V" version >/dev/null 2>&1 || { echo "::error::$name@$V not visible after 10 minutes"; exit 1; }
-            echo "readback $name@$V"
-          done
-      - name: Smoke the published package
-        run: |
-          set -euo pipefail
-          cd "$(mktemp -d)"
-          npx -y "@sylphx/repomap@$V" version
-          npx -y "@sylphx/repomap@$V" map -C "$GITHUB_WORKSPACE" | head -20
-          npx -y "@sylphx/spine@$V" version
-      - name: GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          if gh release view "v$V" >/dev/null 2>&1; then echo "release v$V exists"; exit 0; fi
-          mkdir -p assets
-          for key in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu; do
-            tar -C packages/npm/$key -czf assets/repomap-$key.tar.gz repomap
-          done
-          (cd packages/npm/win32-x64-msvc && zip -q ../../../assets/repomap-win32-x64-msvc.zip repomap.exe)
-          notes=$(awk -v v="## $V" '$0==v{f=1;next} /^## /{f=0} f' CHANGELOG.md)
-          gh release create "v$V" assets/* --target "$GITHUB_SHA" --title "repomap $V" --notes "${notes:-repomap $V}"
-      - name: Move the major tag (uses SylphxAI/repomap@v1)
-        run: |
-          set -euo pipefail
-          MAJOR="v${V%%.*}"
-          git tag -f "$MAJOR" "$GITHUB_SHA"
-          git push -f origin "refs/tags/$MAJOR"
-      - name: Publish to the MCP Registry
-        run: |
-          set -euo pipefail
-          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
-          ./mcp-publisher validate
-          ./mcp-publisher login github-oidc
-          if curl -fsS "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.SylphxAI%2Frepomap/versions/$V" >/dev/null 2>&1; then
-            echo "io.github.SylphxAI/repomap $V already in the registry"
-          else
-            ./mcp-publisher publish
-          fi
-
-  registry-retired:
-    # Runs on every release run (not only new versions), so it converges even
-    # after a transient registry error. Idempotent.
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Deprecate retired MCP Registry names (spine, locus)
-        run: |
-          set -euo pipefail
-          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
-          ./mcp-publisher login github-oidc
-          # The npm packages @sylphx/spine and @sylphx/locus stay live as thin
-          # aliases of repomap; only their registry listings retire.
-          for retired in io.github.SylphxAI/spine io.github.SylphxAI/locus; do
-            enc=$(node -p "encodeURIComponent(process.argv[1])" "$retired")
-            url="https://registry.modelcontextprotocol.io/v0.1/servers/$enc/versions/latest"
-            if curl -fsS "$url" | jq -e '._meta["io.modelcontextprotocol.registry/official"].status == "deprecated"' >/dev/null; then
-              echo "$retired already deprecated"; continue
-            fi
-            done_ok=false
-            for attempt in 1 2 3 4 5; do
-              # --yes skips the bulk-operation prompt (no stdin in CI).
-              if out=$(./mcp-publisher status --status deprecated --all-versions --yes \
-                  --message 'Merged into repomap. Use io.github.SylphxAI/repomap (npm @sylphx/repomap).' \
-                  "$retired" 2>&1) || grep -qE 'already set to the provided values|No changes to apply' <<<"$out"; then
-                done_ok=true; break
-              fi
-              echo "attempt $attempt: $out"; sleep $((attempt * 15))
-            done
-            [ "$done_ok" = true ] || { echo "::error::could not deprecate $retired"; exit 1; }
-            ok=false
-            for i in $(seq 1 24); do
-              if curl -fsS "$url" | jq -e '._meta["io.modelcontextprotocol.registry/official"].status == "deprecated"' >/dev/null; then
-                echo "readback: $retired deprecated"; ok=true; break
-              fi
-              sleep 5
-            done
-            [ "$ok" = true ] || { echo "::error::$retired deprecation readback failed"; exit 1; }
-          done
-
-  docker:
-    needs: [check, build]
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
       packages: write
-    env:
-      V: ${{ needs.check.outputs.version }}
-      IMAGE: ghcr.io/sylphxai/repomap
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: native-linux-*
-          path: artifacts
-      - name: Stage prebuilt linux binaries
-        run: |
-          set -euo pipefail
-          mkdir -p dist/amd64 dist/arm64
-          cp artifacts/native-linux-x64-gnu/repomap dist/amd64/repomap
-          cp artifacts/native-linux-arm64-gnu/repomap dist/arm64/repomap
-          chmod +x dist/*/repomap
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.release
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ env.IMAGE }}:${{ env.V }},${{ env.IMAGE }}:latest
-      - name: Read back the image
-        run: |
-          set -euo pipefail
-          docker buildx imagetools inspect "$IMAGE:$V"
-          docker run --rm "$IMAGE:$V" version 2>/dev/null || docker run --rm --entrypoint repomap "$IMAGE:$V" version
-          printf '%s\n' \
-            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
-            '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"verifyToken"}}}' \
-            | (cat; sleep 4) | docker run -i --rm -v "$PWD/crates/repomap-core/tests/fixture:/workspace:ro" "$IMAGE:$V" > /tmp/docker-mcp.out
-          grep -q verifyToken /tmp/docker-mcp.out
-          echo "ghcr image $IMAGE:$V serves MCP over stdio"
+    with:
+      name: repomap
+      npm-package: '@sylphx/repomap'
+      mcp-name: io.github.SylphxAI/repomap
+      alias-dirs: packages/aliases/spine packages/aliases/locus packages/aliases/coderag
+      docker-image: ghcr.io/sylphxai/repomap
+      major-tag: true
+      retired-mcp-names: io.github.SylphxAI/spine io.github.SylphxAI/locus
+      retired-message: Merged into repomap. Use io.github.SylphxAI/repomap (npm @sylphx/repomap).
+      smoke: |
+        npx -y "@sylphx/repomap@$V" version
+        npx -y "@sylphx/repomap@$V" map -C "$GITHUB_WORKSPACE" | head -20
+        npx -y "@sylphx/spine@$V" version
