@@ -1,7 +1,7 @@
 {
-  "name": "@sylphx/spine-linux-x64-gnu",
-  "version": "0.4.0",
-  "description": "Spine native MCP server binary for linux-x64-gnu",
+  "name": "@sylphx/repomap-linux-x64-gnu",
+  "version": "1.0.0",
+  "description": "repomap native binary for linux-x64-gnu",
   "os": [
     "linux"
   ],
@@ -12,16 +12,16 @@
     "glibc"
   ],
   "files": [
-    "spine-mcp-server"
+    "repomap"
   ],
   "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://sylphxai.github.io/spine/",
+  "homepage": "https://sylphxai.github.io/repomap/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/SylphxAI/spine.git",
+    "url": "git+https://github.com/SylphxAI/repomap.git",
     "directory": "packages/npm/linux-x64-gnu"
   }
 }

@@ -1,74 +1,161 @@
-name: Release
+name: release
+
+# Publishes when packages/repomap/package.json carries a version that is not on
+# npm yet: native binaries -> @sylphx/repomap -> aliases -> GitHub release ->
+# MCP Registry. Bump with `bun scripts/set-version.ts X.Y.Z` in a PR.
 
 on:
   push:
-    branches:
-      - main
-    # A version bump touches packages/mcp-server/package.json, so it still
-    # releases. Docs, the README, and a lockfile refresh after natives exist do not.
-    paths-ignore:
-      - 'docs/**'
-      - 'README.md'
-      - 'bun.lock'
+    branches: [main]
   workflow_dispatch:
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
-
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  release:
-    name: Release
+  check:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7.0.0
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          V=$(node -p "require('./packages/repomap/package.json').version")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if npm view "@sylphx/repomap@$V" version >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"; echo "@sylphx/repomap@$V already published"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"; echo "will publish $V"
+          fi
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+  build:
+    needs: check
+    if: needs.check.outputs.publish == 'true'
+    name: build ${{ matrix.key }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { key: darwin-arm64, os: macos-latest, target: aarch64-apple-darwin, bin: repomap }
+          - { key: darwin-x64, os: macos-latest, target: x86_64-apple-darwin, bin: repomap }
+          - { key: linux-x64-gnu, os: ubuntu-latest, target: x86_64-unknown-linux-gnu, zig: '2.17', bin: repomap }
+          - { key: linux-arm64-gnu, os: ubuntu-latest, target: aarch64-unknown-linux-gnu, zig: '2.17', bin: repomap }
+          - { key: win32-x64-msvc, os: windows-latest, target: x86_64-pc-windows-msvc, bin: repomap.exe }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          bun-version: '1.4.0'
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - if: matrix.zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
+      - if: matrix.zig
+        run: cargo install cargo-zigbuild --version 0.23.0 --locked
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ matrix.zig }}" ]; then
+            cargo zigbuild --release --locked -p repomap --target ${{ matrix.target }}.${{ matrix.zig }}
+          else
+            cargo build --release --locked -p repomap --target ${{ matrix.target }}
+          fi
+          mkdir -p out
+          cp target/${{ matrix.target }}/release/${{ matrix.bin }} out/
+          ls -la out
+      - name: Run it (native targets)
+        if: matrix.key != 'linux-arm64-gnu' && matrix.key != 'darwin-x64'
+        shell: bash
+        run: ./out/${{ matrix.bin }} version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.key }}
+          path: out/${{ matrix.bin }}
+          if-no-files-found: error
+          retention-days: 7
 
-      - name: Setup Node (changesets publish requires npm on PATH)
-        uses: actions/setup-node@v4
+  publish:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      V: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build Rust engine
-        run: rm -rf target && bun run build:rust
-
-      - name: Run tests
-        run: cargo test -p architecture-reader-core -- --test-threads=1 && bun test packages/mcp-server/test/boundary.test.ts packages/mcp-server/test/synth.boundary.test.ts
-
-      - name: Release gate
-        run: bun run benchmark:release-gate
-
-      - name: Configure npm auth for changesets publish
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.0'
+      - run: bun scripts/check-version.ts
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Stage natives
         run: |
           set -euo pipefail
-          test -n "${{ secrets.NPM_TOKEN }}"
-          printf '//registry.npmjs.org/:_authToken=%s\nalways-auth=true\n' "${{ secrets.NPM_TOKEN }}" > "$HOME/.npmrc"
-
-      - name: Create release PR or publish
-        uses: changesets/action@v1
-        with:
-          version: bun run version-packages
-          publish: bun run release
-          title: 'chore(release): version packages'
-          commit: 'chore(release): version packages'
-          createGithubReleases: true
+          for key in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu win32-x64-msvc; do
+            src=$(find artifacts/native-$key -type f | head -1)
+            test -s "$src"
+            cp "$src" packages/npm/$key/
+            chmod +x packages/npm/$key/*
+          done
+          cp README.md LICENSE packages/repomap/
+      - name: Publish to npm
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          pub() {
+            local dir=$1 name
+            name=$(node -p "require('./$dir/package.json').name")
+            if npm view "$name@$V" version >/dev/null 2>&1; then echo "= $name@$V already live"; return; fi
+            (cd "$dir" && npm publish --access public)
+            for i in $(seq 1 60); do npm view "$name@$V" version >/dev/null 2>&1 && { echo "+ $name@$V"; return; }; sleep 5; done
+            echo "::error::$name@$V not visible after publish"; exit 1
+          }
+          for key in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu win32-x64-msvc; do pub packages/npm/$key; done
+          pub packages/repomap
+          for a in spine locus coderag; do pub packages/aliases/$a; done
+      - name: Smoke the published package
+        run: |
+          set -euo pipefail
+          cd "$(mktemp -d)"
+          npx -y "@sylphx/repomap@$V" version
+          npx -y "@sylphx/repomap@$V" map -C "$GITHUB_WORKSPACE" | head -20
+          npx -y "@sylphx/spine@$V" version
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "v$V" >/dev/null 2>&1; then echo "release v$V exists"; exit 0; fi
+          mkdir -p assets
+          for key in darwin-arm64 darwin-x64 linux-x64-gnu linux-arm64-gnu; do
+            tar -C packages/npm/$key -czf assets/repomap-$key.tar.gz repomap
+          done
+          (cd packages/npm/win32-x64-msvc && zip -q ../../../assets/repomap-win32-x64-msvc.zip repomap.exe)
+          notes=$(awk -v v="## $V" '$0==v{f=1;next} /^## /{f=0} f' CHANGELOG.md)
+          gh release create "v$V" assets/* --target "$GITHUB_SHA" --title "repomap $V" --notes "${notes:-repomap $V}"
+      - name: Publish to the MCP Registry
+        run: |
+          set -euo pipefail
+          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher validate
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish

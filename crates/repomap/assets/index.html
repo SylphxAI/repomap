@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<meta name="description" content="An interactive map of the codebase: modules, dependencies, symbols and change impact. Made with repomap.">
+<meta name="generator" content="repomap __VERSION__">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='8' cy='9' r='4' fill='%238aa4ff'/%3E%3Ccircle cx='24' cy='8' r='3' fill='%23ff7eb6'/%3E%3Ccircle cx='21' cy='23' r='5' fill='%2342d6a4'/%3E%3Ccircle cx='7' cy='24' r='3' fill='%23ffb454'/%3E%3C/svg%3E">
+__CSS__
+</head>
+<body>
+<div id="stage"></div>
+<div id="loading"><div><div class="spin"></div>Mapping the codebase…</div></div>
+<div id="brand" class="glass">
+  <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><g stroke="rgba(255,255,255,.35)" stroke-width="1.4"><line x1="8" y1="9" x2="24" y2="8"/><line x1="8" y1="9" x2="21" y2="23"/><line x1="24" y1="8" x2="21" y2="23"/><line x1="7" y1="24" x2="21" y2="23"/></g><circle cx="8" cy="9" r="4" fill="#8aa4ff"/><circle cx="24" cy="8" r="3" fill="#ff7eb6"/><circle cx="21" cy="23" r="5" fill="#42d6a4"/><circle cx="7" cy="24" r="3" fill="#ffb454"/></svg>
+  <div><div class="title">repomap</div><div class="stats"></div></div>
+</div>
+<div id="search">
+  <div class="box glass">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a93a6" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input placeholder="Search files, symbols and code…" spellcheck="false" autocomplete="off">
+    <kbd>/</kbd>
+  </div>
+  <div id="results" class="glass"></div>
+</div>
+<aside id="legend" class="glass"><header><h3>Modules</h3><button class="btn" style="padding:2px 8px;font-size:11px">Reset</button></header><div class="list"></div></aside>
+<aside id="panel" class="glass"></aside>
+<div id="controls" class="glass">
+  <button data-c="layout" title="Run / pause layout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7l7.5 1M7 8l4 8M17 10l-4 6"/></svg>Layout</button>
+  <button data-c="fit" title="Fit to screen (f)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  <button data-c="edges" title="Show dependency edges">Edges</button>
+  <button data-c="tests" title="Show test files">Tests</button>
+  <button data-c="labels" title="Show labels">Labels</button>
+</div>
+<div id="credit">Mapped with <a href="https://github.com/SylphxAI/repomap" target="_blank" rel="noopener">repomap</a> · <code>npx @sylphx/repomap serve</code></div>
+<div id="tip" class="glass"></div>
+__DATA__
+__JS__
+</body>
+</html>

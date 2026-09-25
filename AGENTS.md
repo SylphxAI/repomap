@@ -1,42 +1,16 @@
-# architecture-reader-mcp — local agent notes only
+# repomap: agent notes
 
-Static engineering and delivery standards load from the active Skills runtime
-([SylphxAI/skills](https://github.com/SylphxAI/skills) is binding instruction
-SSOT). Doctrine and Mission Control are retired historical lineage and must not
-be loaded as current instruction authority.
+Read [PROJECT.md](PROJECT.md) for the layout and the release flow.
 
-Local truth: `PROJECT.md`.
-
-## Boundary hazards
-
-- Never commit secrets, tokens, `.env` files, or credentials.
-
-## Local commands
-
-- `PROJECT.md` is the human-readable project boundary.
-- `docs/architecture.md` is the durable architecture overview.
-- `docs/specs/` owns product and protocol specifications.
-- `docs/adr/` owns durable architectural decisions.
-- Prefer the **narrowest** affected check before full workspace runs.
-- Report layers honestly: local diff · trunk FF · deploy · prod proof (do not collapse).
-
-## Validation notes
-
-- Prefer the **narrowest** affected check before full workspace runs.
-- Report layers honestly: local diff · trunk FF · deploy · prod proof (do not collapse).
-
-## Backend false-authority fence
-
-Work: wi_01KYFN6993PMG8WD00Q51AE231
-
-If this repository has completed a **Rust backend** cutover:
-
-1. Production backend behavior authority is the Rust crate/binary/service path declared in `sylphx.toml` / deploy manifests / package `bin` native path / Docker ENTRYPOINT.
-2. Residual TypeScript service trees or alternate TS engines are **not** product authority unless explicitly proven still on the live path.
-3. Do not "fix production" by editing residual TypeScript and assuming deploy/runtime will pick it up.
-4. Prefer deleting residual TS backend trees after Rust sole proof; keep history in Git.
-5. Intentional TypeScript frontends, npm packaging wrappers, and native-binding surfaces may remain.
-
-### Repo-specific note
-
-Rust core is authority; TS MCP adapter is packaging surface only.
+- Run the narrowest check first: `cargo test -p repomap-core`, then
+  `cargo test --workspace`. Big benchmarks run in CI (`bench.yml`), not locally.
+- After changing `ui/src/*`, run `bun run build:ui` and commit
+  `crates/repomap/assets/` (CI checks that it is fresh).
+- To add a language, add a grammar crate and a query in
+  `crates/repomap-core/src/lang.rs`, following the capture conventions at the top
+  of that file. Then add a case to the `parse.rs` tests.
+- Keep the MCP surface at five tools. Legacy names are routed in
+  `crates/repomap/src/tools.rs::canonical` until 2.0.
+- One version everywhere: use `bun scripts/set-version.ts` (CI runs
+  `scripts/check-version.ts`).
+- Never commit secrets, tokens or `.env` files.

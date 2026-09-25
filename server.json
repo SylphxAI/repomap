@@ -1,22 +1,28 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.SylphxAI/spine",
-  "title": "Spine",
-  "description": "Spine — repository architecture with file-level proof: graph, paths, traces, and impact.",
+  "name": "io.github.SylphxAI/repomap",
+  "title": "repomap",
+  "description": "Codebase map for AI agents: code graph, search, call paths, change impact. Local, no API key.",
   "repository": {
-    "url": "https://github.com/SylphxAI/spine",
+    "url": "https://github.com/SylphxAI/repomap",
     "source": "github"
   },
-  "version": "0.4.5",
-  "websiteUrl": "https://sylphxai.github.io/spine/",
+  "version": "1.0.0",
+  "websiteUrl": "https://sylphxai.github.io/repomap/",
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "@sylphx/spine",
-      "version": "0.4.5",
+      "identifier": "@sylphx/repomap",
+      "version": "1.0.0",
       "transport": {
         "type": "stdio"
-      }
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ]
     }
   ]
 }

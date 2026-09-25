@@ -1,0 +1,35 @@
+{
+  "name": "@sylphx/locus",
+  "version": "1.0.0",
+  "description": "Locus is now repomap. This package is a thin alias of @sylphx/repomap (same MCP server and CLI).",
+  "bin": {
+    "locus": "bin/locus.js"
+  },
+  "files": [
+    "bin/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@sylphx/repomap": "1.0.0"
+  },
+  "keywords": [
+    "repomap",
+    "mcp",
+    "code-search",
+    "code-graph",
+    "locus"
+  ],
+  "license": "MIT",
+  "homepage": "https://sylphxai.github.io/repomap/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SylphxAI/repomap.git",
+    "directory": "packages/aliases/locus"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

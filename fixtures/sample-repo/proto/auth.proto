@@ -1,8 +1,0 @@
-syntax = "proto3";
-package auth.v1;
-import "google/protobuf/empty.proto";
-service AuthService {
-  rpc ValidateToken (TokenRequest) returns (TokenResponse);
-}
-message TokenRequest { string token = 1; }
-message TokenResponse { bool ok = 1; }

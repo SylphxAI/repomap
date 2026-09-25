@@ -1,12 +1,16 @@
 [workspace]
-members = [
-  "crates/architecture-reader-core",
-  "crates/architecture-reader-cli",
-  "crates/architecture-reader-mcp-server",
-]
+members = ["crates/repomap-core", "crates/repomap"]
 resolver = "2"
 
 [workspace.package]
+version = "1.0.0"
 edition = "2021"
-license = "UNLICENSED"
-repository = "https://github.com/SylphxAI/architecture-reader-mcp"
+license = "MIT"
+repository = "https://github.com/SylphxAI/repomap"
+homepage = "https://sylphxai.github.io/repomap/"
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = true
+opt-level = 3

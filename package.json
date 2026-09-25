@@ -1,50 +1,29 @@
 {
-  "name": "@sylphx/spine",
-  "version": "0.4.5",
+  "name": "repomap-workspace",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Spine \u2014 repository architecture with file-level proof. Local-first graph, path, trace, and impact evidence for agents.",
-  "homepage": "https://sylphxai.github.io/spine/",
-  "packageManager": "bun@1.4.2",
-  "engines": {
-    "bun": ">=1.4.0"
-  },
-  "workspaces": [
-    "packages/*"
-  ],
+  "description": "repomap monorepo: Rust engine (crates/), npm packages (packages/), graph UI (ui/), docs (docs/).",
+  "homepage": "https://sylphxai.github.io/repomap/",
+  "license": "MIT",
+  "packageManager": "bun@1.4.0",
   "scripts": {
-    "validate:json": "bun -e \"for (const file of ['package.json', 'packages/mcp-server/package.json', 'server.json']) await Bun.file(file).json()\"",
-    "validate": "bun run validate:json",
-    "build:rust": "cargo build --release -p architecture-reader-core -p architecture-reader-cli -p architecture-reader-mcp-server && bun scripts/stage-rust-mcp.ts",
-    "build": "bun run build:rust",
-    "test": "cargo test && bun test",
-    "doctor": "bun run packages/mcp-server/src/doctor.ts",
-    "benchmark:public-proof": "bun run build:rust && bun run scripts/benchmark-public-proof.ts",
-    "benchmark:release-gate": "bun run build:rust && bun run scripts/release-gate.ts",
-    "sync:server-json": "bun scripts/sync-server-json.ts",
-    "version-packages": "changeset version && bun run sync:server-json",
-    "release": "bun test && changeset publish",
-    "brand:pack-plan": "bun scripts/brand-pack-plan.ts",
+    "build:ui": "bun build ui/src/main.ts --minify --target=browser --format=iife --outfile=crates/repomap/assets/app.js && cp ui/src/style.css crates/repomap/assets/app.css",
+    "build": "bun run build:ui && cargo build --release -p repomap",
+    "test": "cargo test --workspace",
+    "version:set": "bun scripts/set-version.ts",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/SylphxAI/spine.git"
-  },
-  "license": "MIT",
   "devDependencies": {
-    "@changesets/changelog-github": "^0.7.0",
-    "@changesets/cli": "^2.31.0",
-    "@sylphx/synth-js": "^0.3.0",
+    "graphology": "0.26.0",
+    "graphology-layout-forceatlas2": "0.10.1",
+    "graphology-types": "0.24.8",
+    "sigma": "3.0.3",
     "@vue/compiler-dom": "3.5.43",
     "@vue/server-renderer": "3.5.43",
     "vitepress": "1.6.4",
     "vue": "3.5.43"
-  },
-  "mcpName": "io.github.SylphxAI/spine",
-  "bin": {
-    "spine": "./bin/spine"
   }
 }

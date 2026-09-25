@@ -1,54 +1,38 @@
 # Quickstart
 
-## Install
+## 1. Connect your agent
 
 ```bash
-npx -y @sylphx/spine
+npx -y @sylphx/repomap setup
 ```
 
-For Claude Code:
+`setup` finds the MCP clients you have (Claude Code, Codex, Cursor, VS Code, Claude Desktop, Windsurf and Gemini CLI), adds repomap to each one, and prints what it changed. It is safe to run again. Use `--dry-run` to preview, `--client cursor,codex` to pick clients, and `--remove` to undo.
+
+Restart the client, then ask:
+
+> Use repomap to map this repo, then show me what would break if I changed `SessionStore.refresh`.
+
+## 2. See the map
 
 ```bash
-claude mcp add spine -- npx -y @sylphx/spine
+cd your-repo
+npx -y @sylphx/repomap serve
 ```
 
-Any MCP client uses the same stdio server:
+Your browser opens the [graph UI](/guide/ui). To publish a snapshot, run `npx -y @sylphx/repomap export`. It writes `repomap.html`, which you can open anywhere.
 
-```json
-{
-  "mcpServers": {
-    "spine": { "command": "npx", "args": ["-y", "@sylphx/spine"] }
-  }
-}
+## 3. Use it from the terminal
+
+```bash
+npx -y @sylphx/repomap map                       # overview
+npx -y @sylphx/repomap search "retry backoff"    # hybrid search
+npx -y @sylphx/repomap context Client.send       # 360° view
+npx -y @sylphx/repomap trace main handleRequest  # call path
+npx -y @sylphx/repomap impact --changed          # blast radius of your diff
 ```
 
-## Refresh the graph
+For a global install, run `npm i -g @sylphx/repomap`, then use `repomap …`.
 
-Omit `mode`. Spine reuses the index, updates what changed, or scans fully when it has to. The response names that as `cache_hit`, `incremental`, or `full`.
+## Supported platforms
 
-```json
-{
-  "root": "/absolute/path/to/repo"
-}
-```
-
-`refresh` is the name of that default. `auto` is the old name for the same behavior. A complete rescan is explicit:
-
-```json
-{
-  "root": "/absolute/path/to/repo",
-  "mode": "full"
-}
-```
-
-`status_only` checks freshness and does not index. There is no model call and no API key on this path.
-
-## Ask one question
-
-```json
-{
-  "query": "authMiddleware"
-}
-```
-
-Search matches a label or a path fragment, not a sentence. Read the locators, the extraction label, the freshness, and the gaps before treating the answer as true.
+macOS (Apple silicon, Intel), Linux glibc (x64, arm64) and Windows x64. Node 18+ is only used to launch the native binary. You can also download a binary from [GitHub releases](https://github.com/SylphxAI/repomap/releases) or build one with `cargo install --git https://github.com/SylphxAI/repomap repomap`.

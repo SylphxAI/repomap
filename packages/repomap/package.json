@@ -1,0 +1,60 @@
+{
+  "name": "@sylphx/repomap",
+  "version": "1.0.0",
+  "mcpName": "io.github.SylphxAI/repomap",
+  "description": "A map of your codebase for AI agents: code graph, search, call paths and change impact, with an interactive graph UI. Rust MCP server + CLI. Local, no API key.",
+  "bin": {
+    "repomap": "bin/repomap.js"
+  },
+  "files": [
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "@sylphx/repomap-darwin-arm64": "1.0.0",
+    "@sylphx/repomap-darwin-x64": "1.0.0",
+    "@sylphx/repomap-linux-x64-gnu": "1.0.0",
+    "@sylphx/repomap-linux-arm64-gnu": "1.0.0",
+    "@sylphx/repomap-win32-x64-msvc": "1.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "code-graph",
+    "knowledge-graph",
+    "codebase",
+    "code-search",
+    "code-intelligence",
+    "repo-map",
+    "call-graph",
+    "dependency-graph",
+    "impact-analysis",
+    "tree-sitter",
+    "bm25",
+    "ai-agents",
+    "claude-code",
+    "cursor",
+    "codex",
+    "developer-tools",
+    "rust",
+    "visualization"
+  ],
+  "license": "MIT",
+  "homepage": "https://sylphxai.github.io/repomap/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SylphxAI/repomap.git",
+    "directory": "packages/repomap"
+  },
+  "bugs": {
+    "url": "https://github.com/SylphxAI/repomap/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
