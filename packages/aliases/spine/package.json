@@ -1,6 +1,6 @@
 {
   "name": "@sylphx/spine",
-  "version": "1.2.3",
+  "version": "1.3.1",
   "description": "Spine is now repomap. This package is a thin alias of @sylphx/repomap (same MCP server and CLI).",
   "bin": {
     "spine": "bin/spine.js"
@@ -13,7 +13,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@sylphx/repomap": "1.2.3"
+    "@sylphx/repomap": "1.3.1"
   },
   "keywords": [
     "repomap",

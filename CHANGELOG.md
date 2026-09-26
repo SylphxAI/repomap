@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.3
+## 1.3.1
 
 - `repomap score --update-readme --insert` adds the badge to the end of the README's existing badge row (such as the badges inside a centered `<div>` header) instead of above the whole header. With no badge row, it goes directly under the H1.
 - The GitHub Action gets `commit-mode`. The default, `pr`, commits the badge to one reusable branch (`repomap/agent-ready-badge`) and opens or updates a single pull request, so it works with protected branches and merge queues. `push` keeps the old direct commit.
