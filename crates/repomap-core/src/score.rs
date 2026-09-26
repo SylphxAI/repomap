@@ -450,19 +450,71 @@ pub fn update_badge(readme: &str, markdown: &str, insert: bool) -> Option<String
         return Some(re.replace(readme, regex::NoExpand(markdown)).to_string());
     }
     if insert {
-        // After the first heading line, or at the top.
-        let block = format!("{start}{markdown}{end}\n");
-        if let Some(pos) = readme.find('\n').filter(|_| readme.starts_with('#')) {
-            return Some(format!("{}\n\n{block}{}", &readme[..pos], readme[pos + 1..].trim_start_matches('\n')));
-        }
-        return Some(format!("{block}\n{readme}"));
+        return Some(insert_badge(readme, &format!("{start}{markdown}{end}")));
     }
     None
+}
+
+fn is_badge_line(line: &str) -> bool {
+    let l = line.trim_start();
+    l.starts_with("[![") || l.starts_with("![") || (l.starts_with("<a ") && l.contains("<img")) || l.starts_with("<img")
+}
+
+/// Place a new badge line: at the end of the first badge row (a run of
+/// badge lines, e.g. inside a centered `<div>` header), else right under the
+/// first H1, else at the top.
+fn insert_badge(readme: &str, block: &str) -> String {
+    let lines: Vec<&str> = readme.lines().collect();
+    let head = lines.len().min(60);
+    let mut out: Vec<String> = Vec::with_capacity(lines.len() + 2);
+    if let Some(first) = (0..head).find(|&i| is_badge_line(lines[i])) {
+        let mut last = first;
+        while last + 1 < lines.len() && is_badge_line(lines[last + 1]) {
+            last += 1;
+        }
+        out.extend(lines[..=last].iter().map(|l| l.to_string()));
+        out.push(block.to_string());
+        out.extend(lines[last + 1..].iter().map(|l| l.to_string()));
+    } else if let Some(h1) = (0..head).find(|&i| {
+        let t = lines[i].trim_start();
+        (t.starts_with("# ") || t.to_ascii_lowercase().starts_with("<h1")) && !t.starts_with("##")
+    }) {
+        out.extend(lines[..=h1].iter().map(|l| l.to_string()));
+        out.push(String::new());
+        out.push(block.to_string());
+        let rest = &lines[h1 + 1..];
+        let skip = rest.iter().take_while(|l| l.trim().is_empty()).count();
+        if skip < rest.len() {
+            out.push(String::new());
+        }
+        out.extend(rest[skip..].iter().map(|l| l.to_string()));
+    } else {
+        out.push(block.to_string());
+        out.push(String::new());
+        out.extend(lines.iter().map(|l| l.to_string()));
+    }
+    let mut text = out.join("\n");
+    if readme.ends_with('\n') {
+        text.push('\n');
+    }
+    text
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn inserts_into_the_badge_row_or_under_the_title() {
+        let b = "<!-- repomap:agent-ready -->X<!-- /repomap:agent-ready -->";
+        let centered = "<div align=\"center\">\n\n# tool\n\n**One line.**\n\n[![npm](n.svg)](n)\n[![CI](c.svg)](c)\n\n[Docs](d)\n</div>\n";
+        assert_eq!(
+            insert_badge(centered, b),
+            "<div align=\"center\">\n\n# tool\n\n**One line.**\n\n[![npm](n.svg)](n)\n[![CI](c.svg)](c)\n<!-- repomap:agent-ready -->X<!-- /repomap:agent-ready -->\n\n[Docs](d)\n</div>\n"
+        );
+        assert_eq!(insert_badge("# tool\n\nText.\n", b), "# tool\n\n<!-- repomap:agent-ready -->X<!-- /repomap:agent-ready -->\n\nText.\n");
+        assert_eq!(insert_badge("Plain text.\n", b), "<!-- repomap:agent-ready -->X<!-- /repomap:agent-ready -->\n\nPlain text.\n");
+    }
 
     #[test]
     fn badge_helpers() {

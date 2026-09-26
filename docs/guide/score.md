@@ -28,7 +28,7 @@ Every check that is not at full marks comes with a concrete fix, sorted by point
 
 Prefer not to depend on a hosted image? `repomap score --badge-style static --update-readme README.md` writes a self-contained `.github/agent-ready.svg` and points the badge at it. The GitHub Action takes `badge-style: static`.
 
-The colour follows the score: 85+ brightgreen, 70+ green, 55+ yellow, 40+ orange, otherwise red. `--update-readme` replaces the badge between `<!-- repomap:agent-ready -->` markers, or any existing agent-ready badge. With `--insert`, it places one under the title.
+The colour follows the score: 85+ brightgreen, 70+ green, 55+ yellow, 40+ orange, otherwise red. `--update-readme` replaces the badge between `<!-- repomap:agent-ready -->` markers, or any existing agent-ready badge. With `--insert`, it adds the badge to the end of the README's existing badge row (for example inside a centered `<div>` header); without a badge row, it goes directly under the H1.
 
 ## GitHub Action
 
@@ -38,6 +38,7 @@ on:
   push: { branches: [main] }
 permissions:
   contents: write
+  pull-requests: write
 jobs:
   score:
     runs-on: ubuntu-latest
@@ -49,4 +50,6 @@ jobs:
           min-score: 0
 ```
 
-Inputs: `path`, `readme`, `update-readme`, `commit-message`, `min-score`, `version`. Outputs: `score`, `badge-url`, `badge-markdown`. The full report goes to the job summary.
+By default (`commit-mode: pr`), the Action commits the badge to one reusable branch, `repomap/agent-ready-badge`, and opens a pull request, or updates the one already open. This works with protected branches and merge queues. The repository (or organization) must allow GitHub Actions to create pull requests (Settings → Actions → General). `commit-mode: push` commits straight to the checked-out branch instead; use it only where that branch accepts direct pushes.
+
+Inputs: `path`, `readme`, `update-readme`, `badge-style`, `commit-mode`, `pr-branch`, `token`, `commit-message`, `min-score`, `version`. Outputs: `score`, `badge-url`, `badge-markdown`. The full report goes to the job summary.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.3
+
+- `repomap score --update-readme --insert` adds the badge to the end of the README's existing badge row (such as the badges inside a centered `<div>` header) instead of above the whole header. With no badge row, it goes directly under the H1.
+- The GitHub Action gets `commit-mode`. The default, `pr`, commits the badge to one reusable branch (`repomap/agent-ready-badge`) and opens or updates a single pull request, so it works with protected branches and merge queues. `push` keeps the old direct commit.
+
 ## 1.3.0
 
 - **Semantic search.** `search` now also ranks code by meaning, with a local static code embedding model ([potion-code-16M-v2](https://huggingface.co/minishlab/potion-code-16M-v2), MIT, 256 dimensions). Plain questions such as "where are failed requests retried" find the right function even when it shares no word with the question.
