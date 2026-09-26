@@ -455,9 +455,11 @@ pub fn update_badge(readme: &str, markdown: &str, insert: bool) -> Option<String
     None
 }
 
+/// A badge is a linked image (`[![..](..)](..)` or `<a ..><img ..></a>`); a bare
+/// image such as a hero banner is not.
 fn is_badge_line(line: &str) -> bool {
     let l = line.trim_start();
-    l.starts_with("[![") || l.starts_with("![") || (l.starts_with("<a ") && l.contains("<img")) || l.starts_with("<img")
+    l.starts_with("[![") || (l.starts_with("<a ") && l.contains("<img"))
 }
 
 /// Place a new badge line: at the end of the first badge row (a run of
@@ -512,6 +514,9 @@ mod tests {
             insert_badge(centered, b),
             "<div align=\"center\">\n\n# tool\n\n**One line.**\n\n[![npm](n.svg)](n)\n[![CI](c.svg)](c)\n<!-- repomap:agent-ready -->X<!-- /repomap:agent-ready -->\n\n[Docs](d)\n</div>\n"
         );
+        // A hero image is not a badge row.
+        let hero = "<div align=\"center\">\n\n<img src=\"hero.png\" width=\"820\" />\n\n<h1 hidden>tool</h1>\n\nLead.\n\n[![npm](n.svg)](n)\n[![license](l.svg)](LICENSE)\n\n[Install](#install)\n</div>\n";
+        assert!(insert_badge(hero, b).contains("[![license](l.svg)](LICENSE)\n<!-- repomap:agent-ready -->X"));
         assert_eq!(insert_badge("# tool\n\nText.\n", b), "# tool\n\n<!-- repomap:agent-ready -->X<!-- /repomap:agent-ready -->\n\nText.\n");
         assert_eq!(insert_badge("Plain text.\n", b), "<!-- repomap:agent-ready -->X<!-- /repomap:agent-ready -->\n\nPlain text.\n");
     }

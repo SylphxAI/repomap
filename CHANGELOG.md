@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.2
+
+- `repomap score --update-readme --insert` no longer treats a bare image, such as a hero banner at the top of a centered header, as the badge row. Only linked images count as badges.
+
 ## 1.3.1
 
 - `repomap score --update-readme --insert` adds the badge to the end of the README's existing badge row (such as the badges inside a centered `<div>` header) instead of above the whole header. With no badge row, it goes directly under the H1.
