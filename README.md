@@ -7,10 +7,10 @@
 Code graph · hybrid search · call paths · change impact · an interactive graph UI.<br>
 One Rust binary. Local. No API key. MIT.
 
-[![npm](https://img.shields.io/npm/v/@sylphx/repomap?color=8aa4ff&label=npm)](https://www.npmjs.com/package/@sylphx/repomap)
+[![npm](https://mark.sylphx.com/npm/v/@sylphx/repomap?color=8aa4ff&label=npm)](https://www.npmjs.com/package/@sylphx/repomap)
 [![CI](https://github.com/SylphxAI/repomap/actions/workflows/ci.yml/badge.svg)](https://github.com/SylphxAI/repomap/actions/workflows/ci.yml)
-[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.SylphxAI%2Frepomap-42d6a4)](https://registry.modelcontextprotocol.io/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-ffb454)](LICENSE)
+[![MCP Registry](https://mark.sylphx.com/badge/MCP%20Registry-io.github.SylphxAI%2Frepomap-42d6a4)](https://registry.modelcontextprotocol.io/)
+[![License: MIT](https://mark.sylphx.com/badge/license-MIT-ffb454)](LICENSE)
 <!-- repomap:agent-ready -->[![agent-ready 93/100](https://mark.sylphx.com/badge/agent--ready-93%2F100-brightgreen)](https://github.com/SylphxAI/repomap#agent-readiness-score)<!-- /repomap:agent-ready -->
 
 [**Live demo**](https://sylphxai.github.io/repomap/demo) · [Docs](https://sylphxai.github.io/repomap/) · [Quickstart](#quickstart) · [Tools](#what-your-agent-gets) · [Graph UI](#the-graph-ui) · [Benchmarks](https://sylphxai.github.io/repomap/benchmarks) · [Compare](#how-it-compares)
