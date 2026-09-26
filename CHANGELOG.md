@@ -12,7 +12,8 @@
   - Results spread across files.
   - A file with several matching chunks is lifted.
   - Tests, examples, docs and compatibility shims rank lower.
-  - __BENCH_LINE__
+  - On [semble's public benchmark](https://sylphxai.github.io/repomap/benchmarks) (63 repositories, 1,251 questions), NDCG@10 rose from 0.685 to 0.851. semble scored 0.851 on the same runner. Without the model the score is 0.810. On our 60 questions over Django, Kubernetes, VS Code and rust-analyzer it rose from 0.463 to 0.794, against 0.799 for semble.
+  - A cold index takes 16–19% longer with embeddings, well under the 1.5× budget.
 - **One-click install.** Each GitHub release now carries MCP Bundles (`.mcpb`) for Claude Desktop and other MCPB hosts. There is one bundle for all platforms and one per platform. The bundle asks for a project folder.
 - **Kotlin:** a class body closed on the same line (`class P { val a = 1 }`) no longer drops a file's symbols. This works around an unmerged tree-sitter-kotlin fix.
 - **Fixes:**

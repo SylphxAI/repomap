@@ -213,6 +213,12 @@ Modules are found among your core code only. Tests, examples, docs and benchmark
 
 Import resolution understands relative paths, `@/` aliases, npm workspace packages, Python packages and relative imports, Go modules, Rust `mod`/`use`/workspace crates, Java/PHP namespaces, C/C++ includes and Ruby `require`. `.gitignore` is respected, and so is `.repomapignore`.
 
+## Search that understands the question
+
+On [semble's public code-search benchmark](https://sylphxai.github.io/repomap/benchmarks) (63 repositories, 19 languages, 1,251 questions), repomap's `search` scores NDCG@10 **0.851**. semble, a tool built only for search, also scores 0.851 on the same runner. The 137M-parameter CodeRankEmbed model scores 0.839 and plain BM25 0.673. repomap 1.2 scored 0.685.
+
+This needs no GPU, no vector database and no API key. A 33 MB static code model runs on the CPU, next to BM25 and symbol names.
+
 ## Fast
 
 The index is built in parallel and cached per file, so after the first run only changed files are parsed again. The MCP server keeps the graph in memory and refreshes it when files change.
@@ -221,10 +227,10 @@ Measured on a 4 vCPU GitHub-hosted runner ([method and full table](https://sylph
 
 | Repository | Code files | Cold index | Warm index | search p50 | impact p50 |
 |---|---:|---:|---:|---:|---:|
-| kubernetes | 11,710 | 11.2 s | 1.9 s | 57 ms | 5 ms |
-| vscode | 6,125 | 8.0 s | 1.3 s | 7 ms | 6 ms |
-| django | 2,271 | 2.2 s | 0.4 s | 21 ms | 1 ms |
-| rust-analyzer | 1,512 | 1.8 s | 0.3 s | 4 ms | 2 ms |
+| kubernetes | 11,710 | 13.0 s | 1.9 s | 73 ms | 6 ms |
+| vscode | 6,126 | 9.2 s | 1.4 s | 16 ms | 8 ms |
+| django | 2,271 | 2.6 s | 0.4 s | 24 ms | 1 ms |
+| rust-analyzer | 1,512 | 2.1 s | 0.4 s | 7 ms | 2 ms |
 
 ## How it compares
 
