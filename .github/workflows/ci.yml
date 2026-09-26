@@ -75,6 +75,21 @@ jobs:
           path: bin
       - run: chmod +x bin/repomap && echo "REPOMAP_BIN=$PWD/bin/repomap" >> "$GITHUB_ENV"
       - run: bun install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/sylphx/models
+          key: models-potion-code-16M-v2
+      - name: Semantic search (embedding model)
+        run: |
+          set -euo pipefail
+          B=$REPOMAP_BIN
+          $B model
+          $B index . --no-cache | tee /tmp/index.txt
+          grep -q 'keywords + embeddings (potion-code-16M-v2)' /tmp/index.txt
+          # A question that shares no identifier with the answer's name.
+          $B search "rank files by how central they are in the dependency graph" --json --limit 5 > /tmp/sem.json
+          jq -e '[.hits[].file] | index("crates/repomap-core/src/graph.rs") != null' /tmp/sem.json
+          REPOMAP_EMBED=0 $B index . --no-cache | grep -q 'keywords only'
       - name: Manifests agree on one version
         run: bun scripts/check-version.ts
       - name: Committed UI bundle is up to date
@@ -226,10 +241,12 @@ jobs:
           fetch-depth: 0
       - uses: SylphxAI/.github/.github/actions/plain-language@f9176dad2e49c6b99d75f1506fafac84632fe870
 
-  # Queue-only: the platforms a pull request does not need to wait for.
+  # Queue-only: the platforms a pull request does not need to wait for. A
+  # plain name: GitHub adds the matrix value, and a skipped run does not show
+  # an unexpanded `${{ matrix.os }}`.
   other-os:
     if: github.event_name == 'merge_group'
-    name: test (${{ matrix.os }})
+    name: test other OS
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:

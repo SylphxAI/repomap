@@ -27,7 +27,10 @@ impl Workspace {
             if e.checked.elapsed() < RECHECK {
                 return Ok(e.index.clone());
             }
-            if repomap_core::index::fingerprint(&root).ok() == Some(e.index.fingerprint) {
+            // Rebuild when files changed or the embedding model arrived.
+            if repomap_core::index::fingerprint(&root).ok() == Some(e.index.fingerprint)
+                && e.index.model_id == repomap_core::semantic::model_id()
+            {
                 e.checked = Instant::now();
                 return Ok(e.index.clone());
             }

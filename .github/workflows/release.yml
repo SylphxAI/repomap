@@ -31,9 +31,15 @@ jobs:
       alias-dirs: packages/aliases/spine packages/aliases/locus packages/aliases/coderag
       docker-image: ghcr.io/sylphxai/repomap
       major-tag: true
+      mcpb: true
+      mcpb-icon: docs/public/icon.png
       retired-mcp-names: io.github.SylphxAI/spine io.github.SylphxAI/locus
       retired-message: Merged into repomap. Use io.github.SylphxAI/repomap (npm @sylphx/repomap).
       smoke: |
         npx -y "@sylphx/repomap@$V" version
         npx -y "@sylphx/repomap@$V" map -C "$GITHUB_WORKSPACE" | head -20
+        # Semantic search: downloads the embedding model on first use.
+        npx -y "@sylphx/repomap@$V" search "rank files by how central they are" -C "$GITHUB_WORKSPACE" --json --limit 5 > search.json
+        grep -q 'crates/repomap-core/src/graph.rs' search.json
+        npx -y "@sylphx/repomap@$V" index "$GITHUB_WORKSPACE" | grep -q 'keywords + embeddings'
         npx -y "@sylphx/spine@$V" version

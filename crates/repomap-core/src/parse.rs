@@ -3,6 +3,7 @@
 
 use crate::lang::Lang;
 use crate::tokenize::chunk_terms;
+use mcp_kit::embed::Vec8;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -104,6 +105,8 @@ pub struct Chunk {
     /// Frequency of each term in `terms`, same order.
     pub tfs: Vec<u16>,
     pub len: u32,
+    /// Embedding of the chunk when the model is installed.
+    pub vec: Option<Vec8>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -132,10 +135,115 @@ pub fn extract(path: &str, lang: Option<Lang>, src: &str) -> FileFacts {
         ..Default::default()
     };
     if let Some(lang) = lang {
-        parse_code(lang, src, &line_starts, &mut facts);
+        if lang == Lang::Kotlin {
+            // Same lines, so symbol lines stay correct; see `kotlin_semicolons`.
+            let fixed = kotlin_semicolons(src);
+            parse_code(lang, &fixed, &line_starts_of(&fixed, &line_starts, src), &mut facts);
+        } else {
+            parse_code(lang, src, &line_starts, &mut facts);
+        }
     }
     facts.chunks = build_chunks(path, src, &line_starts, &facts.symbols);
     facts
+}
+
+/// Workaround for tree-sitter-kotlin 1.1.0 (upstream PRs #11 and #13 are not
+/// merged): a class body closed on the same line, such as
+/// `class P { val a = 1 }`, followed later by `object …`, turns the file into
+/// an ERROR node and its symbols are lost. A `;` before such a `}` is valid
+/// Kotlin and avoids it. No newline is added, so every line number holds.
+/// Strings, characters and comments are left alone.
+pub(crate) fn kotlin_semicolons(src: &str) -> std::borrow::Cow<'_, str> {
+    let b = src.as_bytes();
+    let mut out: Option<String> = None;
+    let mut last = 0; // bytes of `src` already copied to `out`
+    let mut prev: u8 = b'\n'; // last code byte that is not a space or tab
+    let mut i = 0;
+    while i < b.len() {
+        let c = b[i];
+        match c {
+            b'/' if b.get(i + 1) == Some(&b'/') => {
+                while i < b.len() && b[i] != b'\n' {
+                    i += 1;
+                }
+                continue;
+            }
+            b'/' if b.get(i + 1) == Some(&b'*') => {
+                let mut depth = 0;
+                while i < b.len() {
+                    if b[i] == b'/' && b.get(i + 1) == Some(&b'*') {
+                        depth += 1;
+                        i += 2;
+                    } else if b[i] == b'*' && b.get(i + 1) == Some(&b'/') {
+                        depth -= 1;
+                        i += 2;
+                        if depth == 0 {
+                            break;
+                        }
+                    } else {
+                        i += 1;
+                    }
+                }
+                continue;
+            }
+            b'"' => {
+                let raw = b.get(i + 1) == Some(&b'"') && b.get(i + 2) == Some(&b'"');
+                i += if raw { 3 } else { 1 };
+                while i < b.len() {
+                    if raw && b[i] == b'"' && b.get(i + 1) == Some(&b'"') && b.get(i + 2) == Some(&b'"') {
+                        i += 3;
+                        while i < b.len() && b[i] == b'"' {
+                            i += 1;
+                        }
+                        break;
+                    }
+                    if !raw && b[i] == b'\\' {
+                        i += 2;
+                        continue;
+                    }
+                    if !raw && (b[i] == b'"' || b[i] == b'\n') {
+                        i += 1;
+                        break;
+                    }
+                    i += 1;
+                }
+                prev = b'"';
+                continue;
+            }
+            b'\'' => {
+                i += 1;
+                while i < b.len() && b[i] != b'\'' && b[i] != b'\n' {
+                    i += if b[i] == b'\\' { 2 } else { 1 };
+                }
+                i += 1;
+                prev = b'\'';
+                continue;
+            }
+            b'}' if !matches!(prev, b'\n' | b'{' | b';' | b',') => {
+                let o = out.get_or_insert_with(|| String::with_capacity(src.len() + 64));
+                o.push_str(&src[last..i]);
+                o.push(';');
+                last = i;
+            }
+            _ => {}
+        }
+        if c != b' ' && c != b'\t' && c != b'\r' {
+            prev = c;
+        }
+        i += 1;
+    }
+    match out {
+        Some(mut o) => {
+            o.push_str(&src[last..]);
+            std::borrow::Cow::Owned(o)
+        }
+        None => std::borrow::Cow::Borrowed(src),
+    }
+}
+
+/// Line starts of `fixed`, reusing `starts` when nothing changed.
+fn line_starts_of(fixed: &str, starts: &[usize], src: &str) -> Vec<usize> {
+    if fixed.len() == src.len() { starts.to_vec() } else { line_starts(fixed) }
 }
 
 fn line_starts(src: &str) -> Vec<usize> {
@@ -427,6 +535,7 @@ fn build_chunks(path: &str, src: &str, line_starts: &[usize], symbols: &[SymbolF
     }
 
     let path_terms = crate::tokenize::path_terms(path);
+    let model = crate::semantic::model();
     let mut chunks = Vec::with_capacity(out.len());
     for (start, end, sym) in out {
         let a = line_starts[(start - 1) as usize];
@@ -453,6 +562,7 @@ fn build_chunks(path: &str, src: &str, line_starts: &[usize], symbols: &[SymbolF
             joined.push_str(&t);
             tfs.push(f);
         }
+        let vec = model.and_then(|m| m.embed8(&crate::semantic::chunk_text(path, body)));
         chunks.push(Chunk {
             start,
             end,
@@ -460,6 +570,7 @@ fn build_chunks(path: &str, src: &str, line_starts: &[usize], symbols: &[SymbolF
             terms: joined,
             tfs,
             len,
+            vec,
         });
     }
     chunks.sort_by_key(|c| c.start);
@@ -468,6 +579,20 @@ fn build_chunks(path: &str, src: &str, line_starts: &[usize], symbols: &[SymbolF
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn kotlin_one_line_bodies_keep_their_symbols() {
+        let src = "class Point(val x: Int) { fun norm(): Int = x }\n\nobject Registry { fun lookup(name: String): String = \"}\" }\n// a } comment\nclass After {\n    fun later(): Int = 1\n}\n";
+        assert_eq!(
+            kotlin_semicolons(src),
+            "class Point(val x: Int) { fun norm(): Int = x ;}\n\nobject Registry { fun lookup(name: String): String = \"}\" ;}\n// a } comment\nclass After {\n    fun later(): Int = 1\n}\n"
+        );
+        let f = extract("A.kt", Some(Lang::Kotlin), src);
+        let names: Vec<(&str, u32)> = f.symbols.iter().map(|s| (s.name.as_str(), s.start)).collect();
+        for want in [("Point", 1), ("norm", 1), ("Registry", 3), ("lookup", 3), ("After", 5), ("later", 6)] {
+            assert!(names.contains(&want), "{want:?} missing from {names:?}");
+        }
+    }
+
     use super::*;
 
     fn names(f: &FileFacts) -> Vec<String> {

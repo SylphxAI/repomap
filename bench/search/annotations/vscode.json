@@ -1,0 +1,126 @@
+[
+ {
+  "query": "fuzzy matching and scoring for quick open",
+  "relevant": [
+   "src/vs/base/common/fuzzyScorer.ts"
+  ],
+  "secondary": [
+   "src/vs/base/common/filters.ts"
+  ],
+  "category": "semantic"
+ },
+ {
+  "query": "piece tree text buffer",
+  "relevant": [
+   "src/vs/editor/common/model/pieceTreeTextBuffer/pieceTreeBase.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "extension host process startup",
+  "relevant": [
+   "src/vs/workbench/api/node/extensionHostProcess.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "evaluate when-clause context key expressions",
+  "relevant": [
+   "src/vs/platform/contextkey/common/contextkey.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "git extension commands to stage and commit",
+  "relevant": [
+   "extensions/git/src/commands.ts"
+  ],
+  "secondary": [
+   "extensions/git/src/repository.ts"
+  ],
+  "category": "semantic"
+ },
+ {
+  "query": "minimap rendering",
+  "relevant": [
+   "src/vs/editor/browser/viewParts/minimap/minimap.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "search in the settings editor",
+  "relevant": [
+   "src/vs/workbench/contrib/preferences/browser/settingsEditor2.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "spawn the terminal shell process with a pty",
+  "relevant": [
+   "src/vs/platform/terminal/node/terminalProcess.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "diff algorithm that computes line changes",
+  "relevant": [
+   "src/vs/editor/common/diff/defaultLinesDiffComputer/defaultLinesDiffComputer.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "undo and redo stack service",
+  "relevant": [
+   "src/vs/platform/undoRedo/common/undoRedoService.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "markdown preview panel",
+  "relevant": [
+   "extensions/markdown-language-features/src/preview/preview.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "how do IPC channels work between processes",
+  "relevant": [
+   "src/vs/base/parts/ipc/common/ipc.ts"
+  ],
+  "secondary": [],
+  "category": "architecture"
+ },
+ {
+  "query": "bracket pair colorization",
+  "relevant": [
+   "src/vs/editor/common/model/bracketPairsTextModelPart/bracketPairsImpl.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "parse snippet placeholders and variables",
+  "relevant": [
+   "src/vs/editor/contrib/snippet/browser/snippetParser.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ },
+ {
+  "query": "file watcher for workspace changes",
+  "relevant": [
+   "src/vs/platform/files/node/watcher/parcel/parcelWatcher.ts"
+  ],
+  "secondary": [],
+  "category": "semantic"
+ }
+]

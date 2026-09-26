@@ -20,7 +20,7 @@ features:
     details: Modules found from real dependencies, the most central files (PageRank), key symbols and entry points. Zoom into any directory for an outline with line numbers.
   - icon: 🔎
     title: search
-    details: Symbol names plus BM25 over whole functions, methods and classes (tree-sitter chunks). Returns file:line ranges and the matching lines.
+    details: Symbol names, BM25 and a local code embedding model over whole functions, methods and classes. Ask in plain words or by name. Returns file:line ranges and the matching lines.
   - icon: 🧭
     title: context
     details: One call for a symbol's code, its callers with call sites, callees, subtypes, members and the tests that reach it.

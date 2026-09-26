@@ -484,34 +484,77 @@ impl Index {
         sym_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap().then(a.0.cmp(&b.0)));
         sym_scores.truncate(60);
 
-        // Reciprocal-rank fusion keyed by (file, start line).
+        // Reciprocal-rank fusion keyed by (file, start line). Identifier-like
+        // queries lean on the lexical lists, sentences on the embedding.
         const K: f32 = 20.0;
+        let symbolish = looks_like_symbol(q);
+        let (w_lex, w_dense) = if symbolish { (1.0, 0.5) } else { (1.0, 1.0) };
         let mut fused: HashMap<(u32, u32), (f32, u32, Option<u32>, Vec<String>)> = HashMap::new();
         for (rank, h) in bm.iter().enumerate() {
             let c = &self.bm25.chunks[h.chunk as usize];
             let e = fused.entry((c.file, c.start)).or_insert((0.0, c.end, c.symbol, Vec::new()));
-            e.0 += 1.0 / (K + rank as f32);
+            e.0 += w_lex / (K + rank as f32);
             e.3 = h.matched.clone();
         }
         for (rank, (s, score)) in sym_scores.iter().enumerate() {
             let sym = &self.symbols[*s as usize];
             let weight = if *score >= 3.0 { 2.0 } else { 1.0 };
             let e = fused.entry((sym.file, sym.start)).or_insert((0.0, sym.end, Some(*s), Vec::new()));
-            e.0 += weight / (K + rank as f32);
+            e.0 += w_lex * weight / (K + rank as f32);
             if e.2.is_none() {
                 e.2 = Some(*s);
             }
         }
+        // Semantic: chunks whose embedding is closest to the query's.
+        if let Some(qv) = crate::semantic::model().filter(|_| !self.dense.is_empty()).and_then(|m| m.embed(q)) {
+            let hits = self.dense.search(&qv, 60, |c| {
+                let c = &self.bm25.chunks[c as usize];
+                path_ok(c.file) && kind_ok(c.symbol)
+            });
+            for (rank, (cid, _)) in hits.iter().enumerate() {
+                let c = &self.bm25.chunks[*cid as usize];
+                let e = fused.entry((c.file, c.start)).or_insert((0.0, c.end, c.symbol, Vec::new()));
+                e.0 += w_dense / (K + rank as f32);
+            }
+        }
         let mut merged: Vec<((u32, u32), (f32, u32, Option<u32>, Vec<String>))> = fused.into_iter().collect();
+        let max = merged.iter().map(|m| m.1 .0).fold(0f32, f32::max);
+        // A file whose name or folder says what the query asks for
+        // ("session handling" -> sessions.py) gets its best chunks lifted.
+        let words: Vec<String> = query_words(q);
+        let mut file_sum: HashMap<u32, f32> = HashMap::new();
+        for (k, v) in &merged {
+            *file_sum.entry(k.0).or_default() += v.0;
+        }
+        let max_file = file_sum.values().fold(0f32, |a, b| a.max(*b)).max(1e-9);
+        let mut best_of_file: HashMap<u32, f32> = HashMap::new();
+        for (k, v) in &merged {
+            let b = best_of_file.entry(k.0).or_insert(0.0);
+            *b = b.max(v.0);
+        }
+        let mut path_ratio: HashMap<u32, f32> = HashMap::new();
         for (k, v) in merged.iter_mut() {
             let f = &self.files[k.0 as usize];
-            if f.is_test {
-                v.0 *= 0.8;
+            let base = v.0;
+            if !words.is_empty() && !symbolish {
+                let r = *path_ratio.entry(k.0).or_insert_with(|| path_match(&f.path, &words));
+                v.0 += max * 1.5 * r;
             }
-            if f.lang.is_none() {
-                v.0 *= 0.85;
+            // A file with several matching chunks lifts its best one.
+            if base >= best_of_file[&k.0] {
+                v.0 += max * 0.2 * file_sum[&k.0] / max_file;
             }
+            v.0 *= path_penalty(f);
             v.0 *= 1.0 + 0.15 * self.file_rank[k.0 as usize];
+        }
+        merged.sort_by(|a, b| b.1 .0.partial_cmp(&a.1 .0).unwrap().then(a.0.cmp(&b.0)));
+        // Spread results over files: each further chunk of a file counts 0.4×.
+        let decay: f32 = 0.4;
+        let mut seen: HashMap<u32, i32> = HashMap::new();
+        for (k, v) in merged.iter_mut() {
+            let n = seen.entry(k.0).or_insert(0);
+            v.0 *= decay.powi(*n);
+            *n += 1;
         }
         merged.sort_by(|a, b| b.1 .0.partial_cmp(&a.1 .0).unwrap().then(a.0.cmp(&b.0)));
         merged.truncate(opts.limit);
@@ -1381,4 +1424,108 @@ fn number(code: &str, start: u32) -> String {
         .map(|(i, l)| format!("{:>5}| {}", start + i as u32, l))
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// A bare identifier (`parseConfig`, `Sinatra::Base`, `_private`) rather than words.
+fn looks_like_symbol(q: &str) -> bool {
+    if q.is_empty() || q.contains(char::is_whitespace) {
+        return false;
+    }
+    let ident = |p: &str| !p.is_empty() && p.chars().all(|c| c.is_alphanumeric() || c == '_');
+    let parts: Vec<&str> = q.split(|c| c == '.' || c == ':' || c == '\\').filter(|p| !p.is_empty()).collect();
+    if parts.is_empty() || !parts.iter().all(|p| ident(p)) {
+        return false;
+    }
+    parts.len() > 1 || q.starts_with('_') || q.chars().any(|c| c.is_uppercase() || c == '_' || c.is_ascii_digit())
+}
+
+const STOPWORDS: &[&str] = &[
+    "a", "an", "and", "are", "as", "at", "be", "by", "do", "does", "for", "from", "has", "have", "how", "if", "in", "is", "it",
+    "not", "of", "on", "or", "the", "to", "was", "what", "when", "where", "which", "who", "why", "with", "into", "its", "this", "that",
+];
+
+/// Lowercased query words of 3+ letters that are not stopwords.
+fn query_words(q: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for w in tokenize(q) {
+        if w.len() >= 3 && !STOPWORDS.contains(&w.as_str()) && !out.contains(&w) {
+            out.push(w);
+        }
+    }
+    out
+}
+
+/// Share of query words found in a file's name or parent folder; a word and a
+/// name part match when one starts with the other and the shorter has 3+
+/// letters ("route" ~ "routing", "dependency" ~ "dependencies").
+fn path_match(path: &str, words: &[String]) -> f32 {
+    let mut segs = path.rsplit('/');
+    let name = segs.next().unwrap_or(path);
+    let stem = name.split('.').next().unwrap_or(name);
+    let mut parts = tokenize(stem);
+    if let Some(dir) = segs.next() {
+        parts.extend(tokenize(dir));
+    }
+    let stem_of = |w: &str| -> String { w.chars().take(w.chars().count().saturating_sub(if w.len() > 5 { 2 } else { 0 })).collect() };
+    let hit = words
+        .iter()
+        .filter(|w| {
+            parts.iter().any(|p| {
+                let (short, long) = if w.len() <= p.len() { (w.as_str(), p.as_str()) } else { (p.as_str(), w.as_str()) };
+                short.len() >= 3 && (long.starts_with(short) || long.starts_with(&stem_of(short)) && stem_of(short).len() >= 4)
+            })
+        })
+        .count();
+    let r = hit as f32 / words.len() as f32;
+    if r >= 0.1 { r } else { 0.0 }
+}
+
+/// Tests, examples, docs, compatibility shims and re-export files rank lower.
+fn path_penalty(f: &crate::index::FileEntry) -> f32 {
+    use crate::index::Role;
+    let p = f.path.to_ascii_lowercase();
+    let name = p.rsplit('/').next().unwrap_or(&p);
+    let mut w = match f.role {
+        Role::Core => 1.0,
+        Role::Test => 0.3,
+        Role::Example | Role::Doc | Role::Bench => 0.3,
+    };
+    if p.split('/').any(|s| matches!(s, "compat" | "_compat" | "legacy")) {
+        w *= 0.3;
+    }
+    if matches!(name, "__init__.py" | "package-info.java") {
+        w *= 0.5;
+    }
+    if name.ends_with(".d.ts") {
+        w *= 0.7;
+    }
+    if f.lang.is_none() {
+        w *= 0.85;
+    }
+    w
+}
+
+#[cfg(test)]
+mod ranking_tests {
+    use super::*;
+
+    #[test]
+    fn symbol_queries() {
+        for q in ["parseConfig", "Sinatra::Base", "_private", "user_id", "Router", "a.b.c"] {
+            assert!(looks_like_symbol(q), "{q}");
+        }
+        for q in ["session", "session handling", "how are routes registered", "", "a+b"] {
+            assert!(!looks_like_symbol(q), "{q}");
+        }
+    }
+
+    #[test]
+    fn file_names_that_answer_the_query() {
+        let w = query_words("how are routes registered in the router");
+        assert_eq!(w, vec!["routes", "registered", "router"]);
+        // "session management" -> sessions.py (plural), and the folder counts.
+        assert_eq!(path_match("src/flask/sessions.py", &query_words("session management")), 0.5);
+        assert_eq!(path_match("pkg/router/table.go", &query_words("route table")), 1.0);
+        assert_eq!(path_match("src/app.py", &query_words("session management")), 0.0);
+    }
 }
