@@ -288,10 +288,6 @@ Issues and PRs are welcome, and new language support is especially useful: add a
 
 ## Also from Sylphx
 
-[**anymd**](https://github.com/SylphxAI/anymd) turns any file into clean Markdown for your AI agent: PDF, Word, PowerPoint, Excel, EPUB, HTML, images, and audio/video. Like repomap, it runs locally, needs no API key, and is MIT licensed.
-
-## Also from Sylphx
-
 - [**anymd**](https://github.com/SylphxAI/anymd): any file (PDF, Word, PowerPoint, Excel, EPUB, HTML, images) to clean Markdown for AI agents. Rust MCP server + CLI, local.
 - [**lockdocs**](https://github.com/SylphxAI/lockdocs): exact-version library docs from your lockfile. Local, offline, no rate limits.
 - [**readme-mark**](https://github.com/SylphxAI/readme-mark): beautiful README images from one URL: banners, shields-compatible badges, icons, stats cards. It serves repomap's agent-ready badge.
