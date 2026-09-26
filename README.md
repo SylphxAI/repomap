@@ -179,7 +179,7 @@ Keep the badge fresh with the GitHub Action:
 ```yaml
 # .github/workflows/agent-ready.yml
 on: { push: { branches: [main] } }
-permissions: { contents: write }
+permissions: { contents: write, pull-requests: write }
 jobs:
   score:
     runs-on: ubuntu-latest
@@ -187,7 +187,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: SylphxAI/repomap@v1
         with:
-          update-readme: true   # replaces the agent-ready badge (or inserts one under the title)
+          update-readme: true   # opens or updates one PR with the fresh badge
           min-score: 0          # set e.g. 70 to fail below a bar
 ```
 

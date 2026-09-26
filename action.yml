@@ -17,6 +17,15 @@ inputs:
   badge-style:
     description: 'mark (hosted image on mark.sylphx.com) or static (commit a self-contained .github/agent-ready.svg).'
     default: 'mark'
+  commit-mode:
+    description: 'pr (default): open or update one pull request from pr-branch, which works with protected branches and merge queues. push: commit straight to the checked-out branch.'
+    default: 'pr'
+  pr-branch:
+    description: 'Branch reused for the badge pull request.'
+    default: 'repomap/agent-ready-badge'
+  token:
+    description: 'Token for opening the pull request (needs contents and pull-requests write).'
+    default: ${{ github.token }}
   commit-message:
     description: 'Commit message for the badge update.'
     default: 'docs: update agent-readiness badge'
@@ -63,22 +72,49 @@ runs:
         README_PATH: ${{ inputs.readme }}
         BADGE_STYLE: ${{ inputs.badge-style }}
         MESSAGE: ${{ inputs.commit-message }}
+        MODE: ${{ inputs.commit-mode }}
+        BRANCH: ${{ inputs.pr-branch }}
+        GH_TOKEN: ${{ inputs.token }}
+        SCORE: ${{ steps.score.outputs.score }}
       run: |
         set -euo pipefail
         run_repomap() { if [ -n "${REPOMAP_BIN:-}" ]; then "$REPOMAP_BIN" "$@"; else npx -y "@sylphx/repomap@${REPOMAP_VERSION}" "$@"; fi; }
+        case "$MODE" in pr|push) ;; *) echo "::error::commit-mode must be pr or push, got '$MODE'"; exit 1 ;; esac
         run_repomap score "$TARGET" --update-readme "$README_PATH" --insert --badge-style "$BADGE_STYLE" > /dev/null
         cd "$TARGET"
-        git add -N .github/agent-ready.svg 2>/dev/null || true
-        if git diff --quiet -- "$README_PATH" .github/agent-ready.svg 2>/dev/null; then
+        files=("$README_PATH")
+        [ -f .github/agent-ready.svg ] && files+=(.github/agent-ready.svg)
+        git add -N "${files[@]}"
+        if git diff --quiet -- "${files[@]}"; then
           echo "Badge already up to date"
           exit 0
         fi
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add "$README_PATH"
-        [ -f .github/agent-ready.svg ] && git add .github/agent-ready.svg || true
+        if [ "$MODE" = push ]; then
+          git add "${files[@]}"
+          git commit -m "$MESSAGE"
+          git push
+          exit 0
+        fi
+        # pr: commit on one reusable branch and open (or update) a single pull request.
+        base=$(git rev-parse --abbrev-ref HEAD)
+        [ "$base" = HEAD ] && base="${GITHUB_BASE_REF:-${GITHUB_REF_NAME}}"
+        git switch -C "$BRANCH"
+        git add "${files[@]}"
         git commit -m "$MESSAGE"
-        git push
+        git push --force origin "$BRANCH"
+        repo="$GITHUB_REPOSITORY"
+        owner="${repo%%/*}"
+        open=$(gh api "repos/$repo/pulls?state=open&head=$owner:$BRANCH&per_page=1" --jq '.[0].number // empty')
+        body="The agent-readiness score is now **$SCORE/100**. This pull request refreshes the badge in \`$README_PATH\`.
+
+        Opened by [repomap](https://github.com/SylphxAI/repomap#agent-readiness-score). To see the checks and fixes, run \`npx -y @sylphx/repomap score\`."
+        if [ -n "$open" ]; then
+          gh api -X PATCH "repos/$repo/pulls/$open" -f title="$MESSAGE" -f body="$body" --jq '"updated pull request #\(.number): \(.html_url)"'
+        else
+          gh api -X POST "repos/$repo/pulls" -f head="$BRANCH" -f base="$base" -f title="$MESSAGE" -f body="$body" --jq '"opened pull request #\(.number): \(.html_url)"'
+        fi
     - if: ${{ inputs.min-score != '0' }}
       shell: bash
       env:
