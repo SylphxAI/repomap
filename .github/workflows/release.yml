@@ -32,13 +32,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - run: python3 scripts/test_release_crates.py
       - name: Pack and build both crates with registry dependency constraints
         run: python3 scripts/release_crates.py check
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: registry-packages
           path: target/registry-packages/*.crate
@@ -56,7 +56,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - id: plan
@@ -76,7 +76,7 @@ jobs:
 
   release:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    uses: SylphxAI/mcp-kit/.github/workflows/release.yml@v0
+    uses: SylphxAI/mcp-kit/.github/workflows/release.yml@5da4b0376fbbfd114056ccfb888fb98cf202bba5 # v0
     permissions:
       contents: write
       id-token: write
