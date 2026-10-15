@@ -6,7 +6,7 @@
   "description": "repomap monorepo: Rust engine (crates/), npm packages (packages/), graph UI (ui/), docs (docs/).",
   "homepage": "https://sylphxai.github.io/repomap/",
   "license": "MIT",
-  "packageManager": "bun@1.4.0",
+  "packageManager": "bun@1.4.3",
   "scripts": {
     "build:ui": "bun build ui/src/main.ts --minify --target=browser --format=iife --outfile=crates/repomap/assets/app.js && cp ui/src/style.css crates/repomap/assets/app.css",
     "build": "bun run build:ui && cargo build --release -p sylphx-repomap",
