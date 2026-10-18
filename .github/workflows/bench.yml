@@ -39,7 +39,7 @@ jobs:
           clone kubernetes/kubernetes v1.34.1 & pids+=($!)
           for p in "${pids[@]}"; do wait "$p"; done
           du -sh /tmp/corpus/*
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/sylphx/models
           key: models-potion-code-16M-v2
@@ -76,7 +76,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       - run: cargo build --release --locked -p sylphx-repomap
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/sylphx/models
           key: models-potion-code-16M-v2
