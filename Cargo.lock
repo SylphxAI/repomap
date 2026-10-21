@@ -1730,7 +1730,6 @@ version = "1.8.0"
 dependencies = [
  "anyhow",
  "dirs",
- "serde",
  "serde_json",
  "sqlx",
  "sylphx-mcp-kit",
