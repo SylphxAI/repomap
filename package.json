@@ -20,7 +20,7 @@
     "graphology": "0.26.0",
     "graphology-layout-forceatlas2": "0.10.1",
     "graphology-types": "0.24.8",
-    "sigma": "3.0.3",
+    "sigma": "4.0.3",
     "@vue/compiler-dom": "3.5.44",
     "@vue/server-renderer": "3.5.44",
     "vitepress": "1.6.4",
