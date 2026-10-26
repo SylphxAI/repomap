@@ -11,6 +11,7 @@ on:
       - 'crates/**'
       - 'ui/**'
       - 'scripts/demo.sh'
+      - 'scripts/build-storefront.sh'
   workflow_dispatch:
 
 permissions:

@@ -11,6 +11,7 @@ export default defineConfig({
   description: desc,
   appearance: 'force-dark',
   cleanUrls: true,
+  srcExclude: ['storefront/**'],
   lastUpdated: true,
   sitemap: { hostname: url },
   markdown: { theme: { light: 'github-light', dark: 'github-dark-default' } },
@@ -49,6 +50,7 @@ export default defineConfig({
       { text: 'Live demo', link: '/demo' },
       { text: 'Benchmarks', link: '/benchmarks' },
       { text: 'npm', link: 'https://www.npmjs.com/package/@sylphx/repomap' },
+      { text: 'Recover licence', link: '/recover', target: '_self' },
     ],
     sidebar: [
       { text: 'Guide', items: [
