@@ -126,12 +126,10 @@ describe('money catalogue apply script', () => {
 		} else {
 			expect(result.calls.some((call) => call.includes('licence_keys'))).toBe(false)
 		}
-		expect(result.calls.at(-2)).toBe(
+		expect(result.calls.at(-1)).toBe(
 			'PATCH https://api.sylphx.com/v1/orgs/o/projects/p/envs/e/price_catalogs/default?allow_missing=true',
 		)
-		expect(result.calls.at(-1)).toBe(
-			'POST https://api.sylphx.com/v1/orgs/o/projects/p/envs/e/price_catalogs/default:sync',
-		)
+		expect(result.calls.some((call) => call.includes(':sync'))).toBe(false)
 		expect(result.calls.some((call) => call.includes('merchant_accounts'))).toBe(false)
 	})
 
@@ -249,33 +247,18 @@ describe('money catalogue apply script', () => {
 		expect(result.calls.some((call) => call.includes(':sync'))).toBe(false)
 	})
 
-	test('only a keyless preview with the sole merchant_not_connected reason may continue', () => {
-		const merchantMissing = JSON.stringify({
-			code: 'INVALID_STATE',
-			details: [{ reason: 'merchant_not_connected' }],
-		})
-		const base = {
+	test('an empty catalogue skips processor sync and needs no merchant', () => {
+		const result = run({
 			FAKE_EXCHANGE_BODY: GRANTED,
 			FAKE_EXCHANGE_CODE: '200',
-			FAKE_SYNC_BODY: merchantMissing,
-			FAKE_SYNC_CODE: '400',
-			SYNC_FAILURE_NONFATAL: '1',
-		}
-		expect(run(base).status).toBe(0)
-		for (const env of [
-			{ FAKE_SYNC_BODY: merchantMissing, STRIPE_TEST_RESTRICTED_KEY: 'rk_test_fixture', FAKE_MERCHANT_EXISTS: '1' },
-			{
-				FAKE_SYNC_BODY: JSON.stringify({
-					code: 'INVALID_STATE',
-					details: [{ reason: 'merchant_not_connected' }, { reason: 'different_failure' }],
-				}),
-			},
-			{ FAKE_SYNC_BODY: JSON.stringify({ code: 'INVALID_STATE', details: [{ reason: 'different_failure' }] }) },
-			{ FAKE_SYNC_BODY: '{"code":"INTERNAL"}', FAKE_SYNC_CODE: '500' },
-		] as Record<string, string>[]) {
-			expect(run({ ...base, ...env }).status).not.toBe(0)
-		}
+			FAKE_MERCHANT_GET_CODE: '500',
+		})
+		expect(result.status).toBe(0)
+		expect(result.stdout).toContain('no products, no processor sync required')
+		expect(result.calls.some((call) => call.includes(':sync'))).toBe(false)
+		expect(result.calls.some((call) => call.includes('merchant_accounts'))).toBe(false)
 	})
+
 })
 
 describe('money catalogue workflow', () => {

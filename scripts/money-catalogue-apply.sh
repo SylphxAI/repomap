@@ -127,6 +127,11 @@ code=$(call_with_retry PATCH "${base}?allow_missing=true" "$work/patch.out" --da
 if [ "$code" -ge 300 ]; then
   echo "::error::PATCH price_catalogs/default answered ${code}"; cat "$work/patch.out"; exit 1
 fi
+# A free, recovery-only catalogue has no processor objects to synchronize.
+if [ "$(jq -r '.spec.products|length' config/money-catalogue.json)" = "0" ]; then
+  echo "catalogue patched on ${resource##*/}; no products, no processor sync required"
+  exit 0
+fi
 code=$(call_with_retry POST "${base}:sync" "$work/sync.out" --data '{}')
 if [ "$code" -ge 300 ]; then
   if [ "${SYNC_FAILURE_NONFATAL:-}" = "1" ] && [ -z "${STRIPE_TEST_RESTRICTED_KEY:-}" ] \
