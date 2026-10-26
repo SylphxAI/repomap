@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.9.0 - 2026-10-25
 
 - **The multi-repository workspace is free.** repomap Team is withdrawn before any licence was issued: a request that names several repository roots (`--workspace`, a `workspace` argument or a `repomap.workspace.toml`) now always gets the joined answer, with no licence and no `pro_required`. `repomap licence` only says no licence is needed. The Team page is removed.
 
