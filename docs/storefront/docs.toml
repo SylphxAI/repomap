@@ -1,0 +1,28 @@
+title = "repomap"
+description = "A map of your codebase for AI agents: code graph, search, call paths and change impact."
+base_path = "/repomap"
+origin = "https://sylphxai.github.io"
+lang = "en"
+host = "github-pages"
+include = ["pricing.md", "recover.md"]
+edit_url = "https://github.com/SylphxAI/repomap/edit/main/docs/storefront/{path}"
+toc_max_level = 3
+
+[money]
+api_origin = "https://api.sylphx.com"
+parent = "orgs/org_fs01afbdccgn8xdk1ghj5y47w0vtph/projects/prj_fs015mpdnxrygq6rg1m2zcta9v9e7p/envs/env_fs01qnf3zzhbqa6g07cm31b3rpkwd2"
+publishable_key = "sylphx_pk_live_fs011xLNhTAY100sdrps"
+
+[money.trader]
+name = "Sylphx Limited"
+contact = "hi@sylphx.com"
+address = "128 City Road, London EC1V 2NX, United Kingdom"
+
+[money.offers.team]
+product = "repomap_team_seat_year"
+token_product = "repomap"
+title = "repomap is free"
+description = "Multi-repository workspaces are free. New Team sales are closed; existing licences can still be recovered."
+checkout_enabled = false
+recovery_url = "https://sylphxai.github.io/repomap/recover"
+recovery_label = "Email my licence recovery link"
