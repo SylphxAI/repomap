@@ -77,7 +77,7 @@ jobs:
 
   release:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    uses: SylphxAI/mcp-kit/.github/workflows/release.yml@5da4b0376fbbfd114056ccfb888fb98cf202bba5 # v0
+    uses: SylphxAI/mcp-kit/.github/workflows/release.yml@65e471a6ef86551d8805eb30944d4c876f4630f9 # v0
     permissions:
       contents: write
       id-token: write
