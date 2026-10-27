@@ -106,8 +106,8 @@ pre.code .l i { display: inline-block; width: 44px; padding-right: 12px; text-al
 .muted { color: var(--muted); }
 
 /* Controls */
-#controls { position: fixed; left: 16px; bottom: 16px; display: flex; gap: 4px; padding: 5px; z-index: 5; }
-#controls button { background: none; border: 0; border-radius: 9px; height: 34px; min-width: 34px; padding: 0 10px; cursor: pointer; color: var(--muted); font-size: 12.5px; display: inline-flex; gap: 6px; align-items: center; }
+#controls { position: fixed; left: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 4px; max-width: calc(100vw - 32px); padding: 5px; z-index: 5; }
+#controls button { flex: none; white-space: nowrap; background: none; border: 0; border-radius: 9px; height: 34px; min-width: 34px; padding: 0 10px; cursor: pointer; color: var(--muted); font-size: 12.5px; display: inline-flex; gap: 6px; align-items: center; }
 #controls button:hover { background: rgba(255, 255, 255, 0.07); color: var(--text); }
 #controls button.on { color: var(--text); background: rgba(138, 164, 255, 0.14); }
 #controls svg { width: 16px; height: 16px; }

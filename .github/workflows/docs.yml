@@ -38,6 +38,10 @@ jobs:
       - name: Live demo maps (built from this commit)
         run: cargo build --release --locked -p sylphx-repomap && bash scripts/demo.sh target/release/repomap docs/public/demo
       - run: bun run docs:build
+      - name: Responsive graph controls
+        env:
+          CHROMIUM_PATH: /usr/bin/google-chrome
+        run: node scripts/graph-responsive.mjs
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
