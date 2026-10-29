@@ -62,32 +62,41 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || (github.event_name != 'merge_group' && needs.changes.outputs.code == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
       # One release build: the tests reuse its dependency artifacts and the
-      # binary is shared with every later job.
+      # binary is shared with every later job through the BuildCache
+      # run-store, never GitHub artifact storage (its org quota can stop
+      # every upload; see SylphxAI/.github docs/run-store.md).
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --release --locked --workspace
       - run: cargo build --release --locked -p sylphx-repomap
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: SylphxAI/.github/.github/actions/run-store@000d98547b68d07c4da1c62f534da85f1bd4001b # main
         with:
+          mode: put
           name: repomap-linux-x64
           path: target/release/repomap
-          retention-days: 3
 
   checks:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: '1.4.0'
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: SylphxAI/.github/.github/actions/run-store@000d98547b68d07c4da1c62f534da85f1bd4001b # main
         with:
+          mode: get
           name: repomap-linux-x64
           path: bin
       - run: chmod +x bin/repomap && echo "REPOMAP_BIN=$PWD/bin/repomap" >> "$GITHUB_ENV"
@@ -167,10 +176,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: SylphxAI/.github/.github/actions/run-store@000d98547b68d07c4da1c62f534da85f1bd4001b # main
         with:
+          mode: get
           name: repomap-linux-x64
           path: bin
       - run: chmod +x bin/repomap && echo "REPOMAP_BIN=$PWD/bin/repomap" >> "$GITHUB_ENV"
@@ -183,6 +196,9 @@ jobs:
     if: needs.changes.outputs.db == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
     services:
       postgres:
         image: postgres:17
@@ -196,8 +212,9 @@ jobs:
         options: --health-cmd "mysqladmin ping -ppw" --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: SylphxAI/.github/.github/actions/run-store@000d98547b68d07c4da1c62f534da85f1bd4001b # main
         with:
+          mode: get
           name: repomap-linux-x64
           path: bin
       - run: chmod +x bin/repomap
