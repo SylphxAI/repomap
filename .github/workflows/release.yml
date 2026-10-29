@@ -38,7 +38,10 @@ jobs:
       - run: python3 scripts/test_release_crates.py
       - name: Pack and build both crates with registry dependency constraints
         run: python3 scripts/release_crates.py check
+      # A record nobody in this workflow reads: best-effort, so a full
+      # GitHub artifact quota can never fail the registry verification.
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        continue-on-error: true
         with:
           name: registry-packages
           path: target/registry-packages/*.crate
