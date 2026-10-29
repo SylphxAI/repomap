@@ -1,0 +1,36 @@
+name: Money Access refusals
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  verify:
+    name: Verify Access (${{ matrix.declaration }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - declaration: repomap-money-catalogue-preview
+            environment: orgs/org_fs01afbdccgn8xdk1ghj5y47w0vtph/projects/prj_fs015mpdnxrygq6rg1m2zcta9v9e7p/envs/env_fs01nqtm15x260r0xzmrcmp5x021d2
+            other_environment: orgs/org_fs01afbdccgn8xdk1ghj5y47w0vtph/projects/prj_fs015mpdnxrygq6rg1m2zcta9v9e7p/envs/env_fs01qnf3zzhbqa6g07cm31b3rpkwd2
+            scopes: billing:read,billing:write
+          - declaration: repomap-money-catalogue-production
+            environment: orgs/org_fs01afbdccgn8xdk1ghj5y47w0vtph/projects/prj_fs015mpdnxrygq6rg1m2zcta9v9e7p/envs/env_fs01qnf3zzhbqa6g07cm31b3rpkwd2
+            other_environment: orgs/org_fs01afbdccgn8xdk1ghj5y47w0vtph/projects/prj_fs015mpdnxrygq6rg1m2zcta9v9e7p/envs/env_fs01nqtm15x260r0xzmrcmp5x021d2
+            scopes: billing:read,billing:write
+    env:
+      EXPECT_REFUSAL: 'true'
+      ACCESS_NAME: ${{ matrix.declaration }}
+      EXPECTED_ENVIRONMENT: ${{ matrix.environment }}
+      OTHER_ENVIRONMENT: ${{ matrix.other_environment }}
+      EXPECTED_SCOPES: ${{ matrix.scopes }}
+      EXPECTED_REF: refs/heads/main
+      OTHER_REPOSITORY_DECLARATION: anymd-money-catalogue-preview
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 scripts/money-access-verify.py
