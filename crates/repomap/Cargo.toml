@@ -22,7 +22,7 @@ path = "src/main.rs"
 anyhow = "1"
 repomap-core = { package = "sylphx-repomap-core", path = "../repomap-core", version = "1.9.0" }
 serde_json = "1"
-sylphx-mcp-kit = "0.7.3"
+sylphx-mcp-kit = "0.8.0"
 tiny_http = "0.12"
 dirs = "6"
 tokio = { version = "1", default-features = false, features = ["rt", "time"] }
