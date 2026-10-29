@@ -26,7 +26,7 @@ rayon = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 postcard = { version = "1", features = ["use-std"] }
-sylphx-mcp-kit = { version = "0.7.3", default-features = false, features = ["embed", "search"] }
+sylphx-mcp-kit = { version = "0.8.0", default-features = false, features = ["embed", "search"] }
 tree-sitter = "0.27"
 streaming-iterator = "0.1"
 tree-sitter-typescript = "0.23"
