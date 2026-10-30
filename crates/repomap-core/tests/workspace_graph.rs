@@ -356,7 +356,7 @@ fn map_covers_every_repo_and_names_the_links() {
     // A focus drops repos with nothing under it; a token budget is split across repos.
     let f = g.map(
         &MapOptions {
-            focus: Some("crate".into()),
+            focus: Some("./crate/".into()),
             limit: 12,
         },
         None,

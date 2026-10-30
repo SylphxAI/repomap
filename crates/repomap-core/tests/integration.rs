@@ -16,6 +16,29 @@ fn map_lists_modules_and_symbols() {
 }
 
 #[test]
+fn map_relative_focus_preserves_scope_and_budget() {
+    let idx = fixture();
+    let expected = idx.map(&MapOptions { focus: Some("src/auth".into()), limit: 10 });
+    assert_eq!(expected.code_files, 2);
+    assert!(expected.key_files.iter().all(|f| f.path.starts_with("src/auth/")));
+    for focus in ["./src/auth", "././src/auth/"] {
+        let mut map = idx.map(&MapOptions { focus: Some(focus.into()), limit: 10 });
+        assert_eq!(serde_json::to_value(&map).unwrap(), serde_json::to_value(&expected).unwrap(), "{focus}");
+        map.fit_tokens(150);
+        assert!(map.key_files.iter().all(|f| f.path.starts_with("src/auth/")));
+        assert!(repomap_core::query::estimate_tokens(&map.text()) <= 150);
+    }
+    for focus in ["./src/auth-missing", "./missing", "./../src/auth"] {
+        let map = idx.map(&MapOptions { focus: Some(focus.into()), limit: 10 });
+        assert_eq!(map.code_files, 0, "{focus}");
+        assert!(map.key_files.is_empty() && map.key_symbols.is_empty());
+    }
+    let whole = idx.map(&MapOptions { focus: None, limit: 10 });
+    let dot = idx.map(&MapOptions { focus: Some("./".into()), limit: 10 });
+    assert_eq!(serde_json::to_value(dot).unwrap(), serde_json::to_value(whole).unwrap());
+}
+
+#[test]
 fn search_finds_symbol_and_text() {
     let idx = fixture();
     let r = idx.search("verifyToken", &SearchOptions::default());
