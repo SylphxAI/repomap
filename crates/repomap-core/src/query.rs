@@ -287,7 +287,7 @@ pub struct MapOptions {
 
 impl Index {
     pub fn map(&self, opts: &MapOptions) -> MapResult {
-        let focus = opts.focus.as_deref().map(|f| f.trim_matches('/').to_string()).filter(|f| !f.is_empty() && f != ".");
+        let focus = opts.focus.as_deref().map(|f| f.trim_start_matches("./").trim_matches('/').to_string()).filter(|f| !f.is_empty() && f != ".");
         let in_focus = |path: &str| match &focus {
             Some(f) => path == f || path.starts_with(&format!("{f}/")),
             None => true,
