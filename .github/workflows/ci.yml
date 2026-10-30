@@ -355,7 +355,18 @@ jobs:
     # superseded run held the next one (SylphxAI/agents#4222, 2026-10-02).
     runs-on: sylphx-linux-control
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
-      - uses: SylphxAI/.github/.github/actions/needs-pass@000d98547b68d07c4da1c62f534da85f1bd4001b # main
+      - uses: SylphxAI/.github/.github/actions/needs-pass@96195d86b550ab1205159acb1ae0d75b1fbed47f # main
         with:
           needs: ${{ toJSON(needs) }}
+          required: >-
+            chat-senders,
+            ${{ (github.event_name != 'merge_group') && 'changes,identifiers' || '' }},
+            ${{ (github.event_name == 'merge_group') && 'other-os' || '' }},
+            ${{ (needs.changes.result == 'success' && (github.event_name == 'workflow_dispatch' || (github.event_name != 'merge_group' && needs.changes.outputs.code == 'true'))) && 'build' || '' }},
+            ${{ (needs.build.result == 'success') && 'checks,action' || '' }},
+            ${{ (needs.changes.result == 'success' && needs.build.result == 'success' && needs.changes.outputs.db == 'true') && 'live-db' || '' }},
+            ${{ (needs.changes.result == 'success' && needs.build.result == 'success' && needs.changes.outputs.docker == 'true') && 'docker' || '' }}
