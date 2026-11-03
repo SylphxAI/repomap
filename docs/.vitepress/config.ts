@@ -27,6 +27,42 @@ export default defineConfig({
     ['meta', { property: 'og:image:alt', content: 'repomap: a map of your codebase for AI agents' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:image', content: `${url}og.png` }],
+    [
+      'script',
+      { type: 'application/ld+json' },
+      JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'Organization',
+            name: 'Sylphx',
+            legalName: 'Sylphx Limited',
+            url: 'https://sylphx.com',
+            sameAs: ['https://github.com/SylphxAI', 'https://sylphx.com'],
+          },
+          {
+            '@type': 'WebSite',
+            name: 'repomap',
+            url,
+            description: desc,
+          },
+          {
+            '@type': 'SoftwareApplication',
+            name: 'repomap',
+            applicationCategory: 'DeveloperApplication',
+            operatingSystem: 'macOS, Linux, Windows',
+            url,
+            downloadUrl: 'https://www.npmjs.com/package/@sylphx/repomap',
+            description: desc,
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'USD',
+            },
+          },
+        ],
+      }),
+    ],
   ],
   // Each page names its own URL, so search engines index every page, not just the home page.
   transformPageData(pageData) {

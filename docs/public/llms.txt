@@ -1,0 +1,28 @@
+# repomap
+
+> A map of your codebase for AI agents: code graph, search, call paths and change impact. No API key.
+
+repomap is a Rust command-line tool and Model Context Protocol (MCP) server published by Sylphx (`https://sylphx.com`). It builds an interactive dependency and symbol graph of your codebase, answers semantic and structural code search queries, traces call paths, and computes change impact locally on your machine with no API key.
+
+## Install and Setup
+
+- npm: `npx -y @sylphx/repomap setup --client cursor,claude,codex`
+- Cargo: `cargo install sylphx-repomap`
+- Homebrew: `brew install sylphxai/tap/repomap`
+
+## Documentation
+
+- [Home](https://sylphxai.github.io/repomap/)
+- [Quickstart](https://sylphxai.github.io/repomap/guide/quickstart)
+- [Editors and agents](https://sylphxai.github.io/repomap/guide/setup)
+- [Graph UI and export](https://sylphxai.github.io/repomap/guide/ui)
+- [Live demo](https://sylphxai.github.io/repomap/demo)
+- [Claude Code hook](https://sylphxai.github.io/repomap/guide/claude-code-hook)
+- [Database map](https://sylphxai.github.io/repomap/guide/database)
+- [Agent-readiness score](https://sylphxai.github.io/repomap/guide/score)
+- [How it works](https://sylphxai.github.io/repomap/guide/how-it-works)
+- [MCP tools](https://sylphxai.github.io/repomap/reference/tools)
+- [CLI reference](https://sylphxai.github.io/repomap/reference/cli)
+- [Benchmarks](https://sylphxai.github.io/repomap/benchmarks)
+- [Comparison](https://sylphxai.github.io/repomap/compare)
+- [GitHub repository](https://github.com/SylphxAI/repomap)
