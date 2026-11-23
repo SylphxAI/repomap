@@ -53,7 +53,8 @@ const DEP = "#36d6e7";
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-const fmt = (n: number) => n.toLocaleString("en-US");
+const fmt = new Intl.NumberFormat().format;
+const fmtPercent = new Intl.NumberFormat(undefined, { style: "percent" }).format;
 const base = (p: string) => p.slice(p.lastIndexOf("/") + 1);
 const dir = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
 
@@ -271,14 +272,14 @@ function mount(data: Data) {
 
   // ---- header
   const modRow = (c: { id: number; name: string; size: number }) =>
-    `<div class="mod" data-c="${c.id}" title="${esc(c.name)}"><span class="dot" style="color:${commColor(c.id)};background:${commColor(c.id)}"></span><span class="name">${esc(c.name)}</span><span class="count">${c.size}</span></div>`;
+    `<div class="mod" data-c="${c.id}" title="${esc(c.name)}"><span class="dot" style="color:${commColor(c.id)};background:${commColor(c.id)}"></span><span class="name">${esc(c.name)}</span><span class="count">${fmt(c.size)}</span></div>`;
   const legendHTML =
     coreComms.slice(0, 60).map(modRow).join("") +
     (auxComms.length ? `<div class="mod-sep">Tests, examples &amp; docs</div>` + auxComms.map(modRow).join("") : "");
   $("#brand .title").innerHTML = `repomap <span>/ ${esc(data.repo)}</span>`;
   $("#brand .stats").textContent = DB
     ? `${fmt(n)} tables · ${fmt(data.stats.symbols)} columns · ${fmt(data.stats.file_edges)} foreign keys · ${fmt(data.stats.call_edges)} code refs`
-    : `${fmt(data.stats.code_files)} files · ${fmt(data.stats.symbols)} symbols · ${fmt(data.stats.call_edges)} calls · ${coreComms.length} modules`;
+    : `${fmt(data.stats.code_files)} files · ${fmt(data.stats.symbols)} symbols · ${fmt(data.stats.call_edges)} calls · ${fmt(coreComms.length)} modules`;
   if (DB) {
     (document.querySelector('#controls [data-c="tests"]') as HTMLElement | null)?.style.setProperty("display", "none");
     $("#brand .title").innerHTML = `repomap db <span>/ ${esc(data.repo)}</span>`;
@@ -316,8 +317,8 @@ function mount(data: Data) {
     state.neighbors = new Set(graph.neighbors(node));
     const d = data.nodes[+node];
     tip.innerHTML = DB
-      ? `<b>${esc(d.p)}</b><span>${fmt(d.l)} columns · referenced by ${graph.inDegree(node)} · references ${graph.outDegree(node)} · ${(d.q ?? []).length} code refs</span>`
-      : `<b>${esc(base(d.p))}</b><span>${esc(d.p)}</span><br><span>${fmt(d.l)} lines · ${d.s.length} symbols · ${graph.inDegree(node)} in / ${graph.outDegree(node)} out</span>`;
+      ? `<b>${esc(d.p)}</b><span>${fmt(d.l)} columns · referenced by ${fmt(graph.inDegree(node))} · references ${fmt(graph.outDegree(node))} · ${fmt((d.q ?? []).length)} code refs</span>`
+      : `<b>${esc(base(d.p))}</b><span>${esc(d.p)}</span><br><span>${fmt(d.l)} lines · ${fmt(d.s.length)} symbols · ${fmt(graph.inDegree(node))} in / ${fmt(graph.outDegree(node))} out</span>`;
     tip.style.display = "block";
     moveTip(event.x, event.y);
     renderer.refresh({ skipIndexation: true });
@@ -439,7 +440,7 @@ function mount(data: Data) {
         <div class="chips">
           <span class="chip"><span class="dot" style="background:${commColor(d.c)}"></span>${esc(comm?.name ?? "")}</span>
           <span class="chip">${esc(d.g)}</span><span class="chip">${fmt(d.l)} lines</span>
-          <span class="chip">top ${pct}% central</span>${d.t ? '<span class="chip">test</span>' : ""}
+          <span class="chip">top ${fmtPercent(pct / 100)} central</span>${d.t ? '<span class="chip">test</span>' : ""}
         </div>
         <div class="actions">
           <button class="btn impact" data-act="impact" title="Files that depend on this one (i)">◎ Impact</button>
@@ -450,11 +451,11 @@ function mount(data: Data) {
       <div class="body">
         <div id="mode"></div>
         <div id="symview"></div>
-        <section><h3><span>Symbols</span><span>${syms.length}</span></h3>
-          ${syms.map((s) => `<div class="row sym" data-line="${s[2]}" data-end="${s[3]}" data-name="${esc(s[0])}"><span class="k ${s[1]}">${kindLetter(s[1])}</span><span class="n">${esc(s[0])}</span><span class="ln">${s[4] ? `${s[4]}↙ ` : ""}:${s[2]}</span></div>`).join("") || '<div class="muted" style="padding:4px 8px">No symbols</div>'}
+        <section><h3><span>Symbols</span><span>${fmt(syms.length)}</span></h3>
+          ${syms.map((s) => `<div class="row sym" data-line="${s[2]}" data-end="${s[3]}" data-name="${esc(s[0])}"><span class="k ${s[1]}">${kindLetter(s[1])}</span><span class="n">${esc(s[0])}</span><span class="ln">${s[4] ? `${fmt(s[4])}↙ ` : ""}:${s[2]}</span></div>`).join("") || '<div class="muted" style="padding:4px 8px">No symbols</div>'}
         </section>
-        <section><h3><span>Used by</span><span>${ins.length}</span></h3>${ins.slice(0, 200).map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">Nothing depends on this file</div>'}</section>
-        <section><h3><span>Depends on</span><span>${outs.length}</span></h3>${outs.slice(0, 200).map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">No internal dependencies</div>'}</section>
+        <section><h3><span>Used by</span><span>${fmt(ins.length)}</span></h3>${ins.slice(0, 200).map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">Nothing depends on this file</div>'}</section>
+        <section><h3><span>Depends on</span><span>${fmt(outs.length)}</span></h3>${outs.slice(0, 200).map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">No internal dependencies</div>'}</section>
       </div>`;
     panel.classList.add("open");
     document.body.classList.add("panel-open");
@@ -481,7 +482,7 @@ function mount(data: Data) {
         <div class="chips">
           <span class="chip"><span class="dot" style="background:${commColor(d.c)}"></span>${esc(group)}</span>
           <span class="chip">${esc(d.g)}</span><span class="chip">${fmt(d.l)} columns</span>
-          <span class="chip">${(d.q ?? []).length} code refs</span>
+          <span class="chip">${fmt((d.q ?? []).length)} code refs</span>
         </div>
         <div class="actions">
           <button class="btn impact" data-act="impact" title="Tables that reference this one, transitively (i)">◎ Impact</button>
@@ -491,13 +492,13 @@ function mount(data: Data) {
       </div>
       <div class="body">
         <div id="mode"></div>
-        <section><h3><span>Columns</span><span>${d.s.length}</span></h3>
+        <section><h3><span>Columns</span><span>${fmt(d.s.length)}</span></h3>
           ${d.s.map((c) => `<div class="row"><span class="k ${c[1]}">${kindLetter(c[1])}</span><span class="n">${esc(c[0])}</span></div>`).join("") || '<div class="muted" style="padding:4px 8px">No columns</div>'}
         </section>
-        ${(d.ix ?? []).length ? `<section><h3><span>Indexes</span><span>${d.ix!.length}</span></h3>${d.ix!.map((x) => `<div class="row"><span class="k ${x[2] ? "pk" : "column"}">${x[2] ? "U" : "i"}</span><span class="n">${esc(x[1].join(", "))} <span class="muted">${esc(x[0])}</span></span></div>`).join("")}</section>` : ""}
-        <section><h3><span>Queried from</span><span>${(d.q ?? []).length}</span></h3>${(d.q ?? []).slice(0, 200).map(refRow).join("") || '<div class="muted" style="padding:4px 8px">No code references found</div>'}</section>
-        <section><h3><span>Referenced by</span><span>${ins.length}</span></h3>${ins.map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">No foreign keys point here</div>'}</section>
-        <section><h3><span>References</span><span>${outs.length}</span></h3>${outs.map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">No foreign keys</div>'}</section>
+        ${(d.ix ?? []).length ? `<section><h3><span>Indexes</span><span>${fmt(d.ix!.length)}</span></h3>${d.ix!.map((x) => `<div class="row"><span class="k ${x[2] ? "pk" : "column"}">${x[2] ? "U" : "i"}</span><span class="n">${esc(x[1].join(", "))} <span class="muted">${esc(x[0])}</span></span></div>`).join("")}</section>` : ""}
+        <section><h3><span>Queried from</span><span>${fmt((d.q ?? []).length)}</span></h3>${(d.q ?? []).slice(0, 200).map(refRow).join("") || '<div class="muted" style="padding:4px 8px">No code references found</div>'}</section>
+        <section><h3><span>Referenced by</span><span>${fmt(ins.length)}</span></h3>${ins.map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">No foreign keys point here</div>'}</section>
+        <section><h3><span>References</span><span>${fmt(outs.length)}</span></h3>${outs.map((i) => fileRow(i)).join("") || '<div class="muted" style="padding:4px 8px">No foreign keys</div>'}</section>
       </div>`;
     panel.classList.add("open");
     document.body.classList.add("panel-open");
@@ -535,8 +536,8 @@ function mount(data: Data) {
       };
       view.innerHTML = `<section><h3><span>${esc(name)}</span>${href ? `<a href="${esc(href)}">open ↗</a>` : `<span>:${line}</span>`}</h3>
         <pre class="code">${code}</pre></section>
-        ${callers.length ? `<section><h3><span>Called by</span><span>${ctx.callers.length}</span></h3>${callers.map((s: any) => site(s, s.at)).join("")}</section>` : ""}
-        ${callees.length ? `<section><h3><span>Calls</span><span>${ctx.callees.length}</span></h3>${callees.map((s: any) => site(s, s.symbol.line)).join("")}</section>` : ""}`;
+        ${callers.length ? `<section><h3><span>Called by</span><span>${fmt(ctx.callers.length)}</span></h3>${callers.map((s: any) => site(s, s.at)).join("")}</section>` : ""}
+        ${callees.length ? `<section><h3><span>Calls</span><span>${fmt(ctx.callees.length)}</span></h3>${callees.map((s: any) => site(s, s.symbol.line)).join("")}</section>` : ""}`;
     } catch (err) {
       view.innerHTML = `<div class="muted" style="padding:8px">${esc(String(err))}</div>`;
     }
@@ -574,10 +575,10 @@ function mount(data: Data) {
     const tests = [...state.depth.keys()].filter((k) => data.nodes[+k].t).length;
     if (state.mode === "impact") {
       const total = state.depth.size - 1;
-      box.innerHTML = `<div class="summary"><b>${fmt(by[1].length)}</b> ${DB ? "tables reference this directly" : "files depend on this directly"}, <b>${fmt(total - by[1].length)}</b> more indirectly — ${mods.size} ${DB ? "groups" : `modules, ${tests} test files`}.</div>
-        ${[1, 2, 3].filter((k) => by[k].length).map((k) => `<section><h3><span>${k === 1 ? "Direct" : `Depth ${k}`}</span><span>${by[k].length}</span></h3>${by[k].slice(0, 80).map((i) => fileRow(i, "", DEPTH[k])).join("")}</section>`).join("")}`;
+      box.innerHTML = `<div class="summary"><b>${fmt(by[1].length)}</b> ${DB ? "tables reference this directly" : "files depend on this directly"}, <b>${fmt(total - by[1].length)}</b> more indirectly — ${fmt(mods.size)} ${DB ? "groups" : `modules, ${fmt(tests)} test files`}.</div>
+        ${[1, 2, 3].filter((k) => by[k].length).map((k) => `<section><h3><span>${k === 1 ? "Direct" : `Depth ${fmt(k)}`}</span><span>${fmt(by[k].length)}</span></h3>${by[k].slice(0, 80).map((i) => fileRow(i, "", DEPTH[k])).join("")}</section>`).join("")}`;
     } else {
-      box.innerHTML = `<div class="summary deps"><b>${fmt(by[1].length)}</b> direct dependencies, <b>${fmt(by[2].length)}</b> at depth 2.</div>`;
+      box.innerHTML = `<div class="summary deps"><b>${fmt(by[1].length)}</b> direct dependencies, <b>${fmt(by[2].length)}</b> at depth ${fmt(2)}.</div>`;
     }
     zoomTo([...state.depth.keys()]);
     renderer.refresh({ skipIndexation: true });

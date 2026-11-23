@@ -93,7 +93,7 @@ async function checkControls(frame, demo, viewportName, outerPage) {
 try {
   for (const viewport of [{ name: 'mobile', width: 390, height: 844 }, { name: 'desktop', width: 1440, height: 1000 }]) {
     for (const demo of ['excalidraw', 'axum', 'flask']) {
-      const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } })
+      const context = await browser.newContext({ locale: 'en-US', viewport: { width: viewport.width, height: viewport.height } })
       const page = await context.newPage()
       const errors = []
       page.on('pageerror', (error) => errors.push(String(error)))
@@ -120,7 +120,19 @@ try {
       await context.close()
     }
   }
-  console.log(`Responsive graph PASS: ${results.length} demo/viewports; embedded excalidraw search, impact and panel close PASS`)
+  const localized = await browser.newContext({ locale: 'ar-EG' })
+  const page = await localized.newPage()
+  await page.goto(`${origin}/repomap/demo/excalidraw/`)
+  await page.waitForFunction(() => document.querySelector('#loading')?.classList.contains('done'))
+  const stats = await page.locator('#brand .stats').textContent()
+  assert.match(stats, /[٠-٩]+٬[٠-٩]{3} symbols/)
+  assert.match(stats, /[٠-٩]+ modules$/)
+  const module = page.locator('#legend .mod[data-c="0"]')
+  assert.match(await module.locator('.count').textContent(), /^[٠-٩]+$/)
+  await module.click()
+  assert(await module.evaluate((el) => el.classList.contains('on')), 'Localized count must not change the module ID')
+  await localized.close()
+  console.log(`Responsive graph PASS: ${results.length} demo/viewports; embedded excalidraw search, impact and panel close PASS; Arabic header and legend counts PASS`)
 } finally {
   await browser.close()
   await new Promise((resolveClose) => server.close(resolveClose))
