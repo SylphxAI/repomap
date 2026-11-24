@@ -12,6 +12,7 @@
   "packages": [
     {
       "registryType": "npm",
+      "runtimeHint": "npx",
       "identifier": "@sylphx/repomap",
       "version": "1.9.0",
       "transport": {
