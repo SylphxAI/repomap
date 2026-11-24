@@ -15,6 +15,7 @@ npx -y @sylphx/repomap setup
 [![npm downloads](https://mark.sylphx.com/npm/dm/@sylphx/repomap?color=8aa4ff&label=downloads)](https://www.npmjs.com/package/@sylphx/repomap)
 [![CI](https://github.com/SylphxAI/repomap/actions/workflows/ci.yml/badge.svg)](https://github.com/SylphxAI/repomap/actions/workflows/ci.yml)
 [![MCP Registry](https://mark.sylphx.com/badge/MCP%20Registry-io.github.SylphxAI%2Frepomap-42d6a4)](https://registry.modelcontextprotocol.io/)
+[![Glama MCP Server Quality Score](https://glama.ai/mcp/servers/SylphxAI/repomap/badges/score.svg)](https://glama.ai/mcp/servers/SylphxAI/repomap)
 [![License: MIT](https://mark.sylphx.com/badge/license-MIT-ffb454)](https://github.com/SylphxAI/repomap/blob/main/LICENSE) <!-- repomap:agent-ready -->[![agent-ready 93/100](https://mark.sylphx.com/badge/agent--ready-93%2F100-brightgreen)](https://github.com/SylphxAI/repomap#agent-readiness-score)<!-- /repomap:agent-ready -->
 
 [**Live demo**](https://sylphxai.github.io/repomap/demo) · [Docs](https://sylphxai.github.io/repomap/) · [Quickstart](https://github.com/SylphxAI/repomap#quickstart) · [Tools](https://github.com/SylphxAI/repomap#what-your-agent-gets) · [Graph UI](https://github.com/SylphxAI/repomap#the-graph-ui) · [Benchmarks](https://sylphxai.github.io/repomap/benchmarks) · [Compare](https://github.com/SylphxAI/repomap#how-it-compares)
@@ -144,6 +145,8 @@ Docker (stdio, amd64/arm64):
 ```
 
 The server indexes the client's workspace root (or its working directory, or `REPOMAP_ROOT`). Every tool also takes `root`.
+
+The GHCR image includes the embedding model. The root `Dockerfile` is a lightweight build for MCP catalogs and defaults to keyword search without the model.
 </details>
 
 ## Proof: file localization on SWE-bench Verified
@@ -393,6 +396,8 @@ cargo run -p sylphx-repomap -- serve .
 Issues and PRs are welcome, and new language support is especially useful: add a grammar and a query in `crates/repomap-core/src/lang.rs`.
 
 ## Also from Sylphx
+
+Built by [Sylphx](https://sylphx.com).
 
 <!-- generated:also-from -->
 - [**anymd**](https://github.com/SylphxAI/anymd): Any file (PDF, Word, PowerPoint, Excel, EPUB, HTML, images) to clean Markdown for AI agents.
