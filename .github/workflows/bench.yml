@@ -2,7 +2,7 @@ name: bench
 
 # Indexing and query benchmarks on large public repositories, and search
 # quality on public question sets, on GitHub-hosted runners. Results land in
-# the job summaries and artifacts; docs/benchmarks.md quotes them.
+# the job summaries; artifacts retain diagnostics only on failure.
 
 on:
   workflow_dispatch:
@@ -57,8 +57,11 @@ jobs:
           set -euo pipefail
           python3 scripts/bench.py target/release/repomap /tmp/corpus bench-keywords.json | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        continue-on-error: true
         with:
           name: bench
+          retention-days: 3
           path: bench*.json
 
   # Search quality: semble's public benchmark (63 repositories, 19 languages,
@@ -121,7 +124,9 @@ jobs:
         if: always()
         run: python3 scripts/bench_search.py --summary out >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: always()
+        if: failure()
+        continue-on-error: true
         with:
           name: search
+          retention-days: 3
           path: out/

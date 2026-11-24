@@ -3,8 +3,8 @@ name: bench-localization
 # File localization on SWE-bench Verified: given the issue text, does `search`
 # rank the files the fix touches near the top? Runs on free GitHub-hosted
 # standard runners, sharded so no job nears the 6 hour limit. Results are
-# uploaded as an artifact; bench/localization/README.md says how they land in
-# the docs.
+# printed in the job summary; bench/localization/README.md describes the
+# benchmark publication process.
 
 on:
   workflow_dispatch:
@@ -59,7 +59,7 @@ jobs:
         with:
           name: repomap-binary
           path: target/release/repomap
-          retention-days: 3
+          retention-days: 1
 
   plan:
     runs-on: ubuntu-latest
@@ -123,7 +123,7 @@ jobs:
         with:
           name: repomap-baseline
           path: target/release/repomap
-          retention-days: 3
+          retention-days: 1
 
   run:
     needs: [build, plan, build-baseline]
@@ -180,6 +180,7 @@ jobs:
         with:
           name: shard-${{ matrix.shard }}
           path: out/
+          retention-days: 1
 
   summary:
     needs: [plan, run]
@@ -208,6 +209,9 @@ jobs:
           python3 bench/localization/localize.py summarize bench/localization/${{ needs.plan.outputs.manifest }} out/localization.json shards/shard-*.json \
             --note "Run ${{ github.run_id }}, 4 vCPU \`ubuntu-latest\`." "${extra[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        continue-on-error: true
         with:
           name: localization
           path: out/localization.json
+          retention-days: 3
