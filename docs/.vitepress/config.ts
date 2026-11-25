@@ -11,7 +11,7 @@ export default defineConfig({
   description: desc,
   appearance: 'force-dark',
   cleanUrls: true,
-  srcExclude: ['storefront/**'],
+  srcExclude: ['storefront/**', 'PUBLISH.md'],
   lastUpdated: true,
   sitemap: { hostname: url },
   markdown: { theme: { light: 'github-light', dark: 'github-dark-default' } },

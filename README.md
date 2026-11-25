@@ -14,7 +14,7 @@ npx -y @sylphx/repomap setup
 [![npm](https://mark.sylphx.com/npm/v/@sylphx/repomap?color=8aa4ff&label=npm)](https://www.npmjs.com/package/@sylphx/repomap)
 [![npm downloads](https://mark.sylphx.com/npm/dm/@sylphx/repomap?color=8aa4ff&label=downloads)](https://www.npmjs.com/package/@sylphx/repomap)
 [![CI](https://github.com/SylphxAI/repomap/actions/workflows/ci.yml/badge.svg)](https://github.com/SylphxAI/repomap/actions/workflows/ci.yml)
-[![MCP Registry](https://mark.sylphx.com/badge/MCP%20Registry-io.github.SylphxAI%2Frepomap-42d6a4)](https://registry.modelcontextprotocol.io/)
+[![MCP Registry](https://mark.sylphx.com/badge/MCP%20Registry-io.github.SylphxAI%2Frepomap-42d6a4)](https://registry.modelcontextprotocol.io/v0/servers?search=repomap)
 [![Glama MCP Server Quality Score](https://glama.ai/mcp/servers/SylphxAI/repomap/badges/score.svg)](https://glama.ai/mcp/servers/SylphxAI/repomap)
 [![License: MIT](https://mark.sylphx.com/badge/license-MIT-ffb454)](https://github.com/SylphxAI/repomap/blob/main/LICENSE) <!-- repomap:agent-ready -->[![agent-ready 93/100](https://mark.sylphx.com/badge/agent--ready-93%2F100-brightgreen)](https://github.com/SylphxAI/repomap#agent-readiness-score)<!-- /repomap:agent-ready -->
 
@@ -400,8 +400,8 @@ Issues and PRs are welcome, and new language support is especially useful: add a
 Built by [Sylphx](https://sylphx.com).
 
 <!-- generated:also-from -->
-- [**anymd**](https://github.com/SylphxAI/anymd): Any file (PDF, Word, PowerPoint, Excel, EPUB, HTML, images) to clean Markdown for AI agents.
-- [**lockdocs**](https://github.com/SylphxAI/lockdocs): Exact-version library docs from your lockfile. Local, offline, no rate limits.
+- [**anymd**](https://anymd.sylphx.com/?utm_source=repomap&utm_medium=readme_halo): Any file (PDF, Word, PowerPoint, Excel, EPUB, HTML, images) to clean Markdown for AI agents.
+- [**lockdocs**](https://lockdocs.sylphx.com/?utm_source=repomap&utm_medium=readme_halo): Exact-version library docs from your lockfile. Local, offline, no rate limits.
 - [**skills**](https://github.com/SylphxAI/skills): Battle-tested agent skills for Claude Code and Codex, installed in one command.
 - [**readme-mark**](https://github.com/SylphxAI/readme-mark): Beautiful README images from one URL: banners, badges, icons and stats cards.
 

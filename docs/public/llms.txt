@@ -7,6 +7,7 @@ repomap is a Rust command-line tool and Model Context Protocol (MCP) server publ
 ## Install and Setup
 
 - npm: `npx -y @sylphx/repomap setup --client cursor,claude,codex`
+- PyPI: `pip install sylphx-repomap` or `uvx --from sylphx-repomap repomap`
 - Cargo: `cargo install sylphx-repomap`
 - Homebrew: `brew install sylphxai/tap/repomap`
 
@@ -26,3 +27,8 @@ repomap is a Rust command-line tool and Model Context Protocol (MCP) server publ
 - [Benchmarks](https://sylphxai.github.io/repomap/benchmarks)
 - [Comparison](https://sylphxai.github.io/repomap/compare)
 - [GitHub repository](https://github.com/SylphxAI/repomap)
+
+## Companion tools
+
+- [anymd](https://anymd.sylphx.com/): Convert local files such as PDFs, Office documents and media to Markdown via MCP or the CLI.
+- [lockdocs](https://lockdocs.sylphx.com/): Get library docs for the exact versions in your lockfile via MCP or the CLI.
