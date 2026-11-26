@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   changes:
-    if: github.event_name != 'merge_group'
+    if: github.repository_visibility == 'public' && github.event_name != 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -59,7 +59,7 @@ jobs:
   # reads: licence, changelog, contributing, security, issue templates.
   build:
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || (github.event_name != 'merge_group' && needs.changes.outputs.code == 'true')
+    if: github.repository_visibility == 'public' && (github.event_name == 'workflow_dispatch' || (github.event_name != 'merge_group' && needs.changes.outputs.code == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -83,6 +83,7 @@ jobs:
           path: target/release/repomap
 
   checks:
+    if: github.repository_visibility == 'public'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -173,6 +174,7 @@ jobs:
         run: node scripts/graph-responsive.mjs
 
   action:
+    if: github.repository_visibility == 'public'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -193,7 +195,7 @@ jobs:
 
   live-db:
     needs: [changes, build]
-    if: needs.changes.outputs.db == 'true'
+    if: github.repository_visibility == 'public' && needs.changes.outputs.db == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -250,7 +252,7 @@ jobs:
 
   docker:
     needs: [changes, build]
-    if: needs.changes.outputs.docker == 'true'
+    if: github.repository_visibility == 'public' && needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -279,7 +281,7 @@ jobs:
           grep -q 'verifyToken' /tmp/out.jsonl
 
   plain-language:
-    if: github.event_name != 'merge_group'
+    if: github.repository_visibility == 'public' && github.event_name != 'merge_group'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -289,6 +291,7 @@ jobs:
       - uses: SylphxAI/.github/.github/actions/plain-language@f9176dad2e49c6b99d75f1506fafac84632fe870
 
   chat-senders:
+    if: github.repository_visibility == 'public'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -300,7 +303,7 @@ jobs:
           mode: fail
 
   identifiers:
-    if: github.event_name != 'merge_group'
+    if: github.repository_visibility == 'public' && github.event_name != 'merge_group'
     name: Identifiers
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -316,7 +319,7 @@ jobs:
   # plain name: GitHub adds the matrix value, and a skipped run does not show
   # an unexpanded `${{ matrix.os }}`.
   other-os:
-    if: github.event_name == 'merge_group'
+    if: github.repository_visibility == 'public' && github.event_name == 'merge_group'
     name: test other OS
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -331,7 +334,7 @@ jobs:
       - run: cargo test --locked --workspace
 
   ci:
-    if: always()
+    if: ${{ always() && github.repository_visibility == 'public' }}
     needs: [changes, build, checks, action, live-db, docker, plain-language, chat-senders, identifiers, other-os]
     runs-on: ubuntu-latest
     timeout-minutes: 5
