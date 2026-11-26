@@ -132,6 +132,10 @@ body.overview-mode { overflow: auto; }
 #overview h1 { font-size: clamp(1.5rem, 4vw, 2.25rem); line-height: 1.2; margin: 0; }
 #overview h2 { font-size: 1.125rem; margin: 1.75rem 0 0.5rem; }
 #overview .overview-stats, #overview summary span { color: var(--muted); }
+#overview .overview-search label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+#overview .overview-search input { width: 100%; padding: 0.65rem 0.9rem; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--panel-solid); color: var(--text); font: inherit; }
+#overview .overview-search-status { margin: 0.5rem 0 0; color: var(--muted); }
+#overview .overview-search-status:empty { margin: 0; }
 #overview details { background: var(--panel-solid); border: 1px solid var(--line-strong); border-radius: 10px; margin: 0.5rem 0; }
 #overview summary { padding: 0.65rem 0.9rem; cursor: pointer; font-weight: 600; }
 #overview summary span { margin-inline-start: 0.4rem; font-weight: 400; }

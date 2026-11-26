@@ -54,6 +54,43 @@ if (!liveURL) await new Promise((resolveListen) => server.listen(0, '127.0.0.1',
 const origin = liveURL ? null : `http://127.0.0.1:${server.address().port}`
 const demoURL = liveURL || `${origin}/repomap/demo/excalidraw/`
 const restorePath = 'packages/excalidraw/data/restore.ts'
+const restoreSource = 'https://github.com/excalidraw/excalidraw/blob/817d8c553c3389650f8b4503984a6d4a5d2f0c11/' + restorePath
+
+async function checkOverviewSearch(page, overview) {
+  const query = overview.getByRole('searchbox', { name: 'Find a file or symbol' })
+  const results = overview.getByRole('list', { name: 'Search results' })
+  const modules = overview.locator('details')
+  assert.equal(await results.isVisible(), false, 'Do not render matches for an empty query')
+  assert.equal(await modules.locator('ul').count(), 0, 'Keep unopened modules lazy')
+  await page.keyboard.press('Tab')
+  assert(await query.evaluate((el) => document.activeElement === el), 'Search must be the first keyboard stop')
+  await page.keyboard.type('restoreElements')
+  const hit = results.getByRole('link', { name: 'restoreElements in ' + restorePath, exact: true })
+  assert.equal(await hit.getAttribute('href'), restoreSource + '#L490')
+  assert.equal(await overview.getByRole('status').textContent(), 'Showing 1 match.')
+  await page.keyboard.press('Tab')
+  assert(await hit.evaluate((el) => document.activeElement === el), 'Tab must reach the real source link directly')
+  assert(await hit.evaluate((el) => {
+    const box = el.getBoundingClientRect()
+    return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight
+  }), 'Focused source link must fit the viewport')
+  assert.equal(await overview.locator('details[open]').count(), 0, 'Search must not expand any module')
+
+  await page.keyboard.press('Shift+Tab')
+  assert(await query.evaluate((el) => document.activeElement === el), 'Shift+Tab must return to search')
+  await page.keyboard.press('ControlOrMeta+a')
+  await page.keyboard.type('RESTORE.TS')
+  assert.equal(await results.getByRole('link', { name: restorePath, exact: true }).getAttribute('href'), restoreSource)
+  await page.keyboard.press('ControlOrMeta+a')
+  await page.keyboard.type('no_such_repomap_test_symbol_123')
+  assert.equal(await overview.getByRole('status').textContent(), 'No matches.')
+  assert.equal(await results.isVisible(), false, 'No matches must clear previous links')
+  await page.keyboard.press('ControlOrMeta+a')
+  await page.keyboard.press('Backspace')
+  assert.equal(await overview.getByRole('status').textContent(), '')
+  assert.equal(await results.isVisible(), false)
+}
+
 const swiftShader = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
 const chromiumPath = process.env.CHROMIUM_PATH || '/usr/bin/chromium'
 
@@ -113,16 +150,17 @@ async function checkDemo(args, mode, viewports, setup) {
           const webgl = await page.evaluate(() => ['webgl2', 'webgl', 'experimental-webgl'].some((kind) => document.createElement('canvas').getContext(kind)))
           assert.equal(webgl, false, 'The browser must actually reject WebGL contexts')
         }
+        await checkOverviewSearch(page, overview)
         const module = overview.locator('summary').filter({ hasText: /^excalidraw\/element 45 files$/ })
         await module.focus()
         await module.press('Enter')
         const source = overview.getByRole('link', { name: restorePath, exact: true })
         await source.waitFor({ state: 'visible' })
-        assert.equal(await source.getAttribute('href'), `https://github.com/excalidraw/excalidraw/blob/817d8c553c3389650f8b4503984a6d4a5d2f0c11/${restorePath}`)
+        assert.equal(await source.getAttribute('href'), restoreSource)
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Overview overflows viewport horizontally')
         await source.scrollIntoViewIfNeeded()
         assert(await source.evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight), 'Source link is clipped vertically')
-        console.log(`${mode} ${width}x${height}: 45-file module opens by keyboard; restore.ts source link PASS`)
+        console.log(`${mode} ${width}x${height}: keyboard symbol/path search, no matches, clear, and module browsing PASS`)
       }
       assert.deepEqual(errors, [], `${mode} ${width}x${height} console/page errors`)
       await page.close()
@@ -133,7 +171,7 @@ async function checkDemo(args, mode, viewports, setup) {
 }
 
 async function checkDemoModes() {
-  const viewports = [[390, 844], [1440, 1000]]
+  const viewports = [[390, 844], [1440, 900]]
   await checkDemo(swiftShader, 'graph', viewports)
   await checkDemo(['--disable-webgl'], 'disabled', viewports)
   if (!process.env.REPOMAP_DEMO_URL) {

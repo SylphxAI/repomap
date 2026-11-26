@@ -95,6 +95,32 @@ function mapStats(data: Data, coreCount: number) {
     : `${fmt(data.stats.code_files)} files · ${fmt(data.stats.symbols)} symbols · ${fmt(data.stats.call_edges)} calls · ${fmt(coreCount)} modules`;
 }
 
+function indexSymbols(data: Data) {
+  const symIndex: { i: number; name: string; lower: string; kind: string; line: number; callers: number }[] = [];
+  data.nodes.forEach((d, i) => d.s.forEach((s) => symIndex.push({ i, name: s[0], lower: s[0].toLowerCase(), kind: s[1], line: s[2], callers: s[4] })));
+  return symIndex;
+}
+
+function indexMatches(data: Data, symIndex: ReturnType<typeof indexSymbols>, ql: string) {
+  const syms = symIndex
+    .map((s) => {
+      const last = s.lower.slice(s.lower.lastIndexOf(".") + 1);
+      let sc = last === ql || s.lower === ql ? 100 : last.startsWith(ql) ? 60 : s.lower.includes(ql) ? 30 - s.lower.indexOf(ql) * 0.1 : 0;
+      if (sc) sc += Math.min(20, s.callers) + data.nodes[s.i].r * 10;
+      return [sc, s] as const;
+    })
+    .filter((x) => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, 8);
+  const files = data.nodes
+    .map((d, i) => {
+      const b = base(d.p).toLowerCase(), p = d.p.toLowerCase();
+      let sc = b === ql || b.split(".")[0] === ql ? 90 : b.startsWith(ql) ? 55 : p.includes(ql) ? 25 : 0;
+      if (sc) sc += d.r * 20;
+      return [sc, i] as const;
+    })
+    .filter((x) => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, 6);
+  return { syms, files };
+}
+
 function mountOverview(data: Data) {
   const db = data.mode === "db";
   const groups = new Map<number, NodeData[]>();
@@ -107,8 +133,45 @@ function mountOverview(data: Data) {
   overview.id = "overview";
   overview.innerHTML = `<h1>${esc(data.repo)}: ${db ? "schema" : "architecture"} overview</h1>
     <p class="overview-stats">${mapStats(data, data.communities.filter((c) => (c.kind ?? "core") === "core").length)}</p>
-    <p>The interactive graph needs WebGL. Open a ${db ? "table group to browse its tables" : "module to browse its files"}.</p>
-    <h2>${db ? "Table groups" : "Modules"}</h2>`;
+    <p>The interactive graph needs WebGL. Use this overview to find source or browse by ${db ? "table group" : "module"}.</p>`;
+  function sourceEntry(node: NodeData, label = node.p, line?: number) {
+    const href = db ? (node.src?.[0] ? openHref(data, ...node.src) : "") : openHref(data, node.p, line);
+    return `<li>${href ? `<a href="${esc(href)}">${esc(label)}</a>` : esc(label)}</li>`;
+  }
+
+  if (data.nodes.length) {
+    overview.insertAdjacentHTML("beforeend", `<div class="overview-search">
+      <label for="overview-query">${db ? "Find a table or column" : "Find a file or symbol"}</label>
+      <input type="search" id="overview-query" autocomplete="off" spellcheck="false">
+      <p role="status" class="overview-search-status"></p>
+      <ul id="overview-results" aria-label="Search results" hidden></ul>
+    </div>`);
+    const input = overview.querySelector<HTMLInputElement>("#overview-query")!;
+    const status = overview.querySelector<HTMLElement>("[role=status]")!;
+    const results = overview.querySelector<HTMLUListElement>("#overview-results")!;
+    let symbols: ReturnType<typeof indexSymbols> | undefined;
+    input.addEventListener("input", () => {
+      const query = input.value.trim().toLowerCase();
+      if (!query) {
+        results.replaceChildren();
+        results.hidden = true;
+        status.textContent = "";
+        return;
+      }
+      const { syms, files } = indexMatches(data, symbols ??= indexSymbols(data), query);
+      results.innerHTML = [
+        ...syms.map(([, symbol]) => {
+          const node = data.nodes[symbol.i];
+          return sourceEntry(node, `${symbol.name} in ${node.p}`, symbol.line);
+        }),
+        ...files.map(([, i]) => sourceEntry(data.nodes[i])),
+      ].join("");
+      const count = syms.length + files.length;
+      results.hidden = count === 0;
+      status.textContent = count ? `Showing ${fmt(count)} match${count === 1 ? "" : "es"}.` : "No matches.";
+    });
+  }
+  overview.insertAdjacentHTML("beforeend", `<h2>${db ? "Table groups" : "Modules"}</h2>`);
   const noun = db ? "table" : "file";
   for (const community of data.communities) {
     const nodes = groups.get(community.id) ?? [];
@@ -118,10 +181,7 @@ function mountOverview(data: Data) {
     details.addEventListener("toggle", () => {
       if (!details.open || details.querySelector("ul")) return;
       const list = document.createElement("ul");
-      list.innerHTML = nodes.map((node) => {
-        const href = db ? (node.src?.[0] ? openHref(data, ...node.src) : "") : openHref(data, node.p);
-        return `<li>${href ? `<a href="${esc(href)}">${esc(node.p)}</a>` : esc(node.p)}</li>`;
-      }).join("");
+      list.innerHTML = nodes.map((node) => sourceEntry(node)).join("");
       details.append(list);
     });
     overview.append(details);
@@ -657,8 +717,7 @@ async function mount(data: Data) {
 
   // ---- search
   const nodeByPath = new Map<string, number>(data.nodes.map((d, i) => [d.p, i]));
-  const symIndex: { i: number; name: string; lower: string; kind: string; line: number; callers: number }[] = [];
-  data.nodes.forEach((d, i) => d.s.forEach((s) => symIndex.push({ i, name: s[0], lower: s[0].toLowerCase(), kind: s[1], line: s[2], callers: s[4] })));
+  const symIndex = indexSymbols(data);
   const input = $<HTMLInputElement>("#search input");
   const results = $("#results");
   let active = 0;
@@ -668,22 +727,7 @@ async function mount(data: Data) {
   function runSearch(q: string) {
     const ql = q.trim().toLowerCase();
     if (!ql) { results.classList.remove("open"); items = []; return; }
-    const syms = symIndex
-      .map((s) => {
-        const last = s.lower.slice(s.lower.lastIndexOf(".") + 1);
-        let sc = last === ql || s.lower === ql ? 100 : last.startsWith(ql) ? 60 : s.lower.includes(ql) ? 30 - s.lower.indexOf(ql) * 0.1 : 0;
-        if (sc) sc += Math.min(20, s.callers) + data.nodes[s.i].r * 10;
-        return [sc, s] as const;
-      })
-      .filter((x) => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, 8);
-    const files = data.nodes
-      .map((d, i) => {
-        const b = base(d.p).toLowerCase(), p = d.p.toLowerCase();
-        let sc = b === ql || b.split(".")[0] === ql ? 90 : b.startsWith(ql) ? 55 : p.includes(ql) ? 25 : 0;
-        if (sc) sc += d.r * 20;
-        return [sc, i] as const;
-      })
-      .filter((x) => x[0] > 0).sort((a, b) => b[0] - a[0]).slice(0, 6);
+    const { syms, files } = indexMatches(data, symIndex, ql);
     items = [];
     let html = "";
     if (syms.length) {

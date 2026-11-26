@@ -16,6 +16,8 @@ These maps were made with `repomap export` from well-known open-source repositor
 
 **Try:** press <kbd>/</kbd> and type `restoreElements`, then press <kbd>Enter</kbd>. Click **Impact** (or press <kbd>i</kbd>) to see everything that depends on the file, and click a module in the legend to focus it. The **Open ↗** links go to the exact commit on GitHub.
 
+If WebGL is unavailable, use **Find a file or symbol** to look up `restoreElements`. Press <kbd>Tab</kbd> to focus the source link and <kbd>Enter</kbd> to open it. You can still browse the modules without searching.
+
 For your own repository, the live version adds code search and code preview:
 
 ```bash
