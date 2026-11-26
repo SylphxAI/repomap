@@ -25,6 +25,8 @@ npx -y @sylphx/repomap export [dir] [--out repomap.html]
 
 **Export** writes one self-contained HTML file with the graph, symbol lists and UI included. It doesn't need a server. If the repo has a GitHub remote, **Open ↗** links point to the exact commit. Search in export mode covers files and symbols. Full-text code search and code preview need `serve`.
 
+If WebGL is unavailable, repomap shows a text overview. Use **Find a file or symbol** to open source links where available, or browse the modules. The graph and its impact view require WebGL.
+
 ## Recording a demo
 
 The README GIF is the real UI, recorded with Playwright by [`scripts/record-demo.py`](https://github.com/SylphxAI/repomap/blob/main/scripts/record-demo.py) and converted with ffmpeg:
