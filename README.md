@@ -22,7 +22,7 @@ npx -y @sylphx/repomap setup
 
 <img src="https://raw.githubusercontent.com/SylphxAI/repomap/main/docs/public/img/demo.gif" alt="repomap demo: the map of excalidraw, searching restoreElements, its code and callers, then the impact of changing it" width="100%">
 
-<sub>The real UI on excalidraw (687 files, indexed in under half a second): search, a symbol's code and callers, then the blast radius of a change. <a href="https://sylphxai.github.io/repomap/demo">Try it in your browser</a>, no install needed.</sub>
+<sub>Excalidraw walkthrough: find a symbol, inspect its code and callers, then see what depends on its file. <a href="https://sylphxai.github.io/repomap/demo">Try it in your browser</a>, no install needed.</sub>
 
 </div>
 
