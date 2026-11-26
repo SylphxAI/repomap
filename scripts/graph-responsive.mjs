@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs'
 import { extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright-core'
+import { checkHomeMedia } from './home-media.browser-test.mjs'
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const dist = resolve(root, 'docs/.vitepress/dist')
@@ -219,6 +220,7 @@ async function checkResponsive() {
     assert(await module.evaluate((el) => el.classList.contains('on')), 'Localized count must not change the module ID')
     await localized.close()
     console.log(`Responsive graph PASS: ${results.length} demo/viewports; embedded excalidraw search, impact and panel close PASS; Arabic header and legend counts PASS`)
+    await checkHomeMedia(browser, `${origin}/repomap/`, recordErrors)
   } finally {
     await browser.close()
   }
