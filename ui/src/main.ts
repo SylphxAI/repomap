@@ -1,5 +1,4 @@
 import Graph from "graphology";
-import Sigma from "sigma";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import FA2Layout from "graphology-layout-forceatlas2/worker";
 
@@ -84,7 +83,76 @@ async function load(): Promise<Data> {
   return r.json();
 }
 
-function mount(data: Data) {
+function openHref(data: Data, path: string, line?: number) {
+  if (data.web && data.commit) return `${data.web}/blob/${data.commit}/${path.split("/").map(encodeURIComponent).join("/")}${line ? `#L${line}` : ""}`;
+  if (data.root) return `vscode://file/${data.root}/${path}${line ? `:${line}` : ""}`;
+  return "";
+}
+
+function mapStats(data: Data, coreCount: number) {
+  return data.mode === "db"
+    ? `${fmt(data.nodes.length)} tables · ${fmt(data.stats.symbols)} columns · ${fmt(data.stats.file_edges)} foreign keys · ${fmt(data.stats.call_edges)} code refs`
+    : `${fmt(data.stats.code_files)} files · ${fmt(data.stats.symbols)} symbols · ${fmt(data.stats.call_edges)} calls · ${fmt(coreCount)} modules`;
+}
+
+function mountOverview(data: Data) {
+  const db = data.mode === "db";
+  const groups = new Map<number, NodeData[]>();
+  for (const node of data.nodes) {
+    const files = groups.get(node.c);
+    if (files) files.push(node);
+    else groups.set(node.c, [node]);
+  }
+  const overview = document.createElement("main");
+  overview.id = "overview";
+  overview.innerHTML = `<h1>${esc(data.repo)}: ${db ? "schema" : "architecture"} overview</h1>
+    <p class="overview-stats">${mapStats(data, data.communities.filter((c) => (c.kind ?? "core") === "core").length)}</p>
+    <p>The interactive graph needs WebGL. Open a ${db ? "table group to browse its tables" : "module to browse its files"}.</p>
+    <h2>${db ? "Table groups" : "Modules"}</h2>`;
+  const noun = db ? "table" : "file";
+  for (const community of data.communities) {
+    const nodes = groups.get(community.id) ?? [];
+    const details = document.createElement("details");
+    details.innerHTML = `<summary>${esc(community.name)} <span>${fmt(nodes.length)} ${noun}${nodes.length === 1 ? "" : "s"}</span></summary>`;
+    // Build only the lists the reader opens; large maps can contain many thousands of files.
+    details.addEventListener("toggle", () => {
+      if (!details.open || details.querySelector("ul")) return;
+      const list = document.createElement("ul");
+      list.innerHTML = nodes.map((node) => {
+        const href = db ? (node.src?.[0] ? openHref(data, ...node.src) : "") : openHref(data, node.p);
+        return `<li>${href ? `<a href="${esc(href)}">${esc(node.p)}</a>` : esc(node.p)}</li>`;
+      }).join("");
+      details.append(list);
+    });
+    overview.append(details);
+  }
+  if (!data.communities.length) overview.insertAdjacentHTML("beforeend", `<p>No ${db ? "tables" : "indexed files"} in this map.</p>`);
+  $("#stage").replaceChildren();
+  document.body.classList.add("overview-mode");
+  document.body.append(overview);
+}
+
+async function mount(data: Data) {
+  // Sigma reads both WebGL globals at module load time.
+  if (typeof WebGLRenderingContext === "undefined" || typeof WebGL2RenderingContext === "undefined") {
+    mountOverview(data);
+    return;
+  }
+  const { default: Sigma } = await import("sigma");
+  const contexts = new Set<WebGLRenderingContext>();
+  class MapRenderer extends Sigma {
+    override createWebGLContext(id: string, options: Parameters<Sigma["createWebGLContext"]>[1] = {}) {
+      const canvas = options.canvas ?? this.createCanvas(id, options);
+      const attributes = { preserveDrawingBuffer: false, antialias: false, ...options };
+      // Check the actual layer, not a separate probe that might succeed while this layer is refused.
+      const gl = canvas.getContext("webgl2", attributes) ?? canvas.getContext("webgl", attributes)
+        ?? (canvas.getContext("experimental-webgl", attributes) as WebGLRenderingContext | null);
+      if (!gl || gl.isContextLost()) throw new Error("WebGL context unavailable");
+      contexts.add(gl);
+      // A repeat request on this canvas returns the same context. Sigma owns its setup and rendering.
+      return super.createWebGLContext(id, { ...options, style: undefined, canvas });
+    }
+  }
   const n = data.nodes.length;
   const DB = data.mode === "db";
   for (const c of data.communities) KIND.set(c.id, c.kind ?? "core");
@@ -148,7 +216,7 @@ function mount(data: Data) {
   };
 
   const container = $("#stage");
-  const renderer = new Sigma(graph, container, {
+  const settings: NonNullable<ConstructorParameters<typeof MapRenderer>[2]> = {
     renderEdgeLabels: false,
     hideEdgesOnMove: data.edges.length > 20000,
     labelFont: getComputedStyle(document.body).fontFamily,
@@ -238,7 +306,18 @@ function mount(data: Data) {
       }
       return res;
     },
-  });
+  };
+  let renderer: MapRenderer;
+  try {
+    renderer = new MapRenderer(graph, container, settings);
+  } catch {
+    // Initialization can fail even with a context (for example, framebuffer or shader allocation).
+    for (const gl of contexts) {
+      if (!gl.isContextLost()) gl.getExtension("WEBGL_lose_context")?.loseContext();
+    }
+    mountOverview(data);
+    return;
+  }
 
   // ---- layout
   const inferred = forceAtlas2.inferSettings(graph);
@@ -277,9 +356,7 @@ function mount(data: Data) {
     coreComms.slice(0, 60).map(modRow).join("") +
     (auxComms.length ? `<div class="mod-sep">Tests, examples &amp; docs</div>` + auxComms.map(modRow).join("") : "");
   $("#brand .title").innerHTML = `repomap <span>/ ${esc(data.repo)}</span>`;
-  $("#brand .stats").textContent = DB
-    ? `${fmt(n)} tables · ${fmt(data.stats.symbols)} columns · ${fmt(data.stats.file_edges)} foreign keys · ${fmt(data.stats.call_edges)} code refs`
-    : `${fmt(data.stats.code_files)} files · ${fmt(data.stats.symbols)} symbols · ${fmt(data.stats.call_edges)} calls · ${fmt(coreComms.length)} modules`;
+  $("#brand .stats").textContent = mapStats(data, coreComms.length);
   if (DB) {
     (document.querySelector('#controls [data-c="tests"]') as HTMLElement | null)?.style.setProperty("display", "none");
     $("#brand .title").innerHTML = `repomap db <span>/ ${esc(data.repo)}</span>`;
@@ -411,12 +488,6 @@ function mount(data: Data) {
     renderer.refresh({ skipIndexation: true });
   }
 
-  function openHref(path: string, line?: number) {
-    if (data.web && data.commit) return `${data.web}/blob/${data.commit}/${path.split("/").map(encodeURIComponent).join("/")}${line ? `#L${line}` : ""}`;
-    if (data.root) return `vscode://file/${data.root}/${path}${line ? `:${line}` : ""}`;
-    return "";
-  }
-
   function fileRow(i: string, extra = "", color = "") {
     const d = data.nodes[+i];
     const dot = color ? `<span class="depth" style="background:${color}"></span>` : `<span class="depth" style="background:${commColor(d.c)}"></span>`;
@@ -429,7 +500,7 @@ function mount(data: Data) {
     const ins = graph.inNeighbors(node).sort((a, b) => data.nodes[+b].r - data.nodes[+a].r);
     const outs = graph.outNeighbors(node).sort((a, b) => data.nodes[+b].r - data.nodes[+a].r);
     const pct = Math.max(1, Math.round((100 * data.nodes.filter((x) => x.r > d.r).length) / n));
-    const href = openHref(d.p);
+    const href = openHref(data, d.p);
     const syms = [...d.s].sort((a, b) => a[2] - b[2]);
     if (DB) return renderTable(node, d, comm?.name ?? "", ins, outs);
     panel.innerHTML = `
@@ -468,9 +539,9 @@ function mount(data: Data) {
   }
 
   function renderTable(node: string, d: NodeData, group: string, ins: string[], outs: string[]) {
-    const src = d.src && d.src[0] ? openHref(d.src[0], d.src[1]) : "";
+    const src = d.src && d.src[0] ? openHref(data, ...d.src) : "";
     const refRow = (r: [string, number, string | null, string]) => {
-      const href = openHref(r[0], r[1]);
+      const href = openHref(data, r[0], r[1]);
       const inner = `<span class="k ${esc(r[3])}">${esc(r[3][0] ?? "·")}</span><span class="n">${esc(r[2] ?? base(r[0]))} <span class="muted">${esc(r[0])}</span></span><span class="ln">:${r[1]}</span>`;
       return href ? `<a class="row" href="${esc(href)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="row">${inner}</div>`;
     };
@@ -518,7 +589,7 @@ function mount(data: Data) {
     row.classList.add("active");
     const line = +row.dataset.line!, end = +row.dataset.end!, name = row.dataset.name!;
     const view = panel.querySelector("#symview")!;
-    const href = openHref(d.p, line);
+    const href = openHref(data, d.p, line);
     if (!LIVE) {
       if (href) window.open(href, "_blank", "noopener");
       return;

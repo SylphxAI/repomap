@@ -125,6 +125,20 @@ pre.code .l i { display: inline-block; width: 44px; padding-right: 12px; text-al
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 8px; }
 
+/* Readable report when the interactive graph cannot start. */
+body.overview-mode { overflow: auto; }
+.overview-mode :is(#stage, #brand, #search, #legend, #panel, #controls, #credit, #tip, #loading) { display: none; }
+#overview { max-width: 52rem; padding: clamp(1rem, 5vw, 3rem); margin: 0 auto; font-size: 1rem; overflow-wrap: anywhere; }
+#overview h1 { font-size: clamp(1.5rem, 4vw, 2.25rem); line-height: 1.2; margin: 0; }
+#overview h2 { font-size: 1.125rem; margin: 1.75rem 0 0.5rem; }
+#overview .overview-stats, #overview summary span { color: var(--muted); }
+#overview details { background: var(--panel-solid); border: 1px solid var(--line-strong); border-radius: 10px; margin: 0.5rem 0; }
+#overview summary { padding: 0.65rem 0.9rem; cursor: pointer; font-weight: 600; }
+#overview summary span { margin-inline-start: 0.4rem; font-weight: 400; }
+#overview ul { padding-inline: 2.25rem 1rem; font: 0.875rem/1.6 var(--mono); }
+#overview a { text-decoration: underline; }
+#overview :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 @media (max-width: 900px) {
   #legend { display: none; }
   #panel { left: 16px; right: 16px; width: auto; top: auto; height: 55vh; }
