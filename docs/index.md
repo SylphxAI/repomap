@@ -27,15 +27,15 @@ proof:
   - value: "0.846"
     label: NDCG@10 on Django, Kubernetes, VS Code and rust-analyzer (semble 0.799)
     link: /benchmarks#search-quality
-  - value: "< 0.5 s"
-    label: to index excalidraw, 687 files and 5,001 symbols
+  - value: Live map
+    label: Explore Excalidraw’s modules and find files or symbols
     link: /demo
 media:
   kind: video
   src: /img/demo.mp4
   poster: /img/hero-excalidraw.webp
   alt: "repomap demo: the map of excalidraw, search, a symbol's code and callers, then the impact of changing it"
-  caption: "excalidraw: 687 files, 5,001 symbols and 9,639 resolved calls, indexed in under half a second."
+  caption: "Excalidraw walkthrough: find a symbol, inspect its code and callers, then see what depends on its file."
   link: /demo
   linkText: Try it live →
 features:

@@ -6,8 +6,10 @@ title: Live demo
 
 These maps were made with `repomap export` from well-known open-source repositories. Each one is a single HTML file, rebuilt by CI whenever repomap changes. Nothing is installed; everything runs in your browser.
 
+The file count covers indexed code, including any test, example, documentation and benchmark files shown in separate groups.
+
 <div class="demo-grid">
-  <a class="demo-card" href="/repomap/demo/excalidraw/" target="_blank"><b>excalidraw</b><span>TypeScript · 687 files · virtual whiteboard</span></a>
+  <a class="demo-card" href="/repomap/demo/excalidraw/" target="_blank"><b>excalidraw</b><span>TypeScript · virtual whiteboard</span></a>
   <a class="demo-card" href="/repomap/demo/axum/" target="_blank"><b>axum</b><span>Rust · web framework on tokio</span></a>
   <a class="demo-card" href="/repomap/demo/flask/" target="_blank"><b>flask</b><span>Python · the micro web framework</span></a>
 </div>
