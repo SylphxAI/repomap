@@ -92,6 +92,24 @@ async function checkOverviewSearch(page, overview) {
   assert.equal(await results.isVisible(), false)
 }
 
+async function checkOverviewDeepLink(page, overview) {
+  // `/` focuses search from anywhere outside a field, as in graph mode.
+  await overview.locator('h1').click()
+  await page.keyboard.press('/')
+  assert(await overview.getByRole('searchbox', { name: 'Find a file or symbol' }).evaluate((el) => document.activeElement === el), '/ must focus search')
+  // A #path link shows that file with the graph panel's counts, on hash change and on load.
+  await page.evaluate((path) => { location.hash = encodeURIComponent(path) }, restorePath)
+  const linked = overview.getByRole('region', { name: restorePath })
+  await linked.waitFor({ state: 'visible' })
+  assert(await linked.getByRole('heading', { name: restorePath }).evaluate((el) => document.activeElement === el), 'Linked file must take focus')
+  await page.reload()
+  await linked.waitFor({ state: 'visible' })
+  assert.equal(await linked.locator('.overview-stats').textContent(), '16 symbols · used by 18 files · excalidraw/element')
+  assert.equal(await linked.getByRole('link', { name: 'Open source', exact: true }).getAttribute('href'), restoreSource)
+  assert.equal(await linked.getByRole('link', { name: 'restoreElements', exact: true }).count(), 1)
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Linked file overflows viewport horizontally')
+}
+
 const swiftShader = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
 const chromiumPath = process.env.CHROMIUM_PATH || '/usr/bin/chromium'
 
@@ -161,7 +179,8 @@ async function checkDemo(args, mode, viewports, setup) {
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Overview overflows viewport horizontally')
         await source.scrollIntoViewIfNeeded()
         assert(await source.evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight), 'Source link is clipped vertically')
-        console.log(`${mode} ${width}x${height}: keyboard symbol/path search, no matches, clear, and module browsing PASS`)
+        await checkOverviewDeepLink(page, overview)
+        console.log(`${mode} ${width}x${height}: keyboard symbol/path search, no matches, clear, module browsing, / and #path link PASS`)
       }
       assert.deepEqual(errors, [], `${mode} ${width}x${height} console/page errors`)
       await page.close()

@@ -170,9 +170,49 @@ function mountOverview(data: Data) {
       results.hidden = count === 0;
       status.textContent = count ? `Showing ${fmt(count)} match${count === 1 ? "" : "es"}.` : "No matches.";
     });
+    // Same keys as graph mode: Enter opens the top match; / and Ctrl/⌘+K focus the search.
+    input.setAttribute("aria-keyshortcuts", "/ Control+K Meta+K");
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.isComposing) results.querySelector("a")?.click();
+    });
+    document.addEventListener("keydown", (e) => {
+      const target = e.target as HTMLElement;
+      const typing = target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName);
+      if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || (e.key === "/" && !typing && !e.altKey && !e.ctrlKey && !e.metaKey)) {
+        input.focus();
+        input.select();
+        e.preventDefault();
+      }
+    });
   }
-  overview.insertAdjacentHTML("beforeend", `<h2>${db ? "Table groups" : "Modules"}</h2>`);
+
+  // Deep link: #path/to/file shows that file, as the graph panel does.
+  const nodeByPath = new Map(data.nodes.map((node, i) => [node.p, i]));
+  const linked = document.createElement("section");
+  linked.id = "overview-file";
+  linked.setAttribute("aria-labelledby", "overview-file-title");
+  function showLinked() {
+    let path = "";
+    try { path = decodeURIComponent(location.hash.slice(1)); } catch { /* malformed hash: show nothing */ }
+    const i = nodeByPath.get(path);
+    linked.hidden = i === undefined;
+    if (i === undefined) return linked.replaceChildren();
+    const node = data.nodes[i];
+    const usedBy = new Set(data.edges.filter(([a, b]) => b === i && a !== i).map(([a]) => a)).size;
+    const module = data.communities.find((c) => c.id === node.c)?.name;
+    const symbolNoun = db ? "column" : "symbol";
+    linked.innerHTML = `<h2 id="overview-file-title" tabindex="-1">${esc(node.p)}</h2>
+      <p class="overview-stats">${fmt(node.s.length)} ${symbolNoun}${node.s.length === 1 ? "" : "s"} · used by ${fmt(usedBy)} ${noun}${usedBy === 1 ? "" : "s"}${module ? ` · ${esc(module)}` : ""}</p>
+      <ul aria-label="Linked ${noun}">${sourceEntry(node, "Open source")}${node.s.map((s) => sourceEntry(node, s[0], db ? undefined : s[2])).join("")}</ul>`;
+  }
   const noun = db ? "table" : "file";
+  showLinked();
+  overview.append(linked);
+  window.addEventListener("hashchange", () => {
+    showLinked();
+    if (!linked.hidden) linked.querySelector<HTMLElement>("h2")!.focus();
+  });
+  overview.insertAdjacentHTML("beforeend", `<h2>${db ? "Table groups" : "Modules"}</h2>`);
   for (const community of data.communities) {
     const nodes = groups.get(community.id) ?? [];
     const details = document.createElement("details");
